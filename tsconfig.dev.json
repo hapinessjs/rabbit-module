@@ -1,0 +1,22 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "outDir": "./dev",
+        "rootDir": "./src",
+        "types": [
+            "node",
+            "boom",
+            "hapi",
+            "hoek",
+            "joi"
+        ]
+    },
+    "exclude": [
+        "node_modules",
+        "dist",
+        "tmp",
+        "dev",
+        "test",
+        "tools"
+    ]
+}
