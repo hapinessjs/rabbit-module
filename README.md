@@ -2,17 +2,17 @@
 
 <div style="margin-bottom:20px;">
 <div style="line-height:60px">
-    <a href="https://travis-ci.org/hapinessjs/rabbitmq-module.svg?branch=master">
-        <img src="https://travis-ci.org/hapinessjs/rabbitmq-module.svg?branch=master" alt="build" />
+    <a href="https://travis-ci.org/hapinessjs/rabbit-module.svg?branch=master">
+        <img src="https://travis-ci.org/hapinessjs/rabbit-module.svg?branch=master" alt="build" />
     </a>
-    <a href="https://coveralls.io/github/hapinessjs/rabbitmq-module?branch=master">
-        <img src="https://coveralls.io/repos/github/hapinessjs/rabbitmq-module/badge.svg?branch=master" alt="coveralls" />
+    <a href="https://coveralls.io/github/hapinessjs/rabbit-module?branch=master">
+        <img src="https://coveralls.io/repos/github/hapinessjs/rabbit-module/badge.svg?branch=master" alt="coveralls" />
     </a>
-    <a href="https://david-dm.org/hapinessjs/rabbitmq-module">
-        <img src="https://david-dm.org/hapinessjs/rabbitmq-module.svg" alt="dependencies" />
+    <a href="https://david-dm.org/hapinessjs/rabbit-module">
+        <img src="https://david-dm.org/hapinessjs/rabbit-module.svg" alt="dependencies" />
     </a>
-    <a href="https://david-dm.org/hapinessjs/rabbitmq-module?type=dev">
-        <img src="https://david-dm.org/hapinessjs/rabbitmq-module/dev-status.svg" alt="devDependencies" />
+    <a href="https://david-dm.org/hapinessjs/rabbit-module?type=dev">
+        <img src="https://david-dm.org/hapinessjs/rabbit-module/dev-status.svg" alt="devDependencies" />
     </a>
 </div>
 <div>
@@ -314,6 +314,6 @@ class FooProvider {
 
 ## License
 
-Copyright (c) 2017 **Hapiness** Licensed under the [MIT license](https://github.com/hapinessjs/rabbitmq-module/blob/master/LICENSE.md).
+Copyright (c) 2017 **Hapiness** Licensed under the [MIT license](https://github.com/hapinessjs/rabbit-module/blob/master/LICENSE.md).
 
 [Back to top](#table-of-contents)
