@@ -2,31 +2,47 @@ import { test, suite } from 'mocha-typescript';
 import * as unit from 'unit.js';
 
 import * as Message from '../../../src/Message';
-import { Observable } from 'rxjs/Observable';
 
-import { ExchangeManager, ExchangeType } from '../../../src/managers/ExchangeManager';
-import { RabbitConnectionMock } from '../../mocks/RabbitConnection';
+import { ExchangeManager, ExchangeWrapper } from '../../../src/managers/index';
 import { ChannelMock } from '../../mocks/Channel';
 import { UserExchange } from '../../fixtures/Exchanges';
-import * as bluebird from 'bluebird';
+import { ExchangeType } from '../../../src/interfaces/index';
+import { extractMetadataByDecorator } from '@hapiness/core/core';
 
 @suite('- Unit Exchange')
-class ConnectTest {
+export class ExchangeServiceUnitTest {
     static stub_sendMessage: any;
 
+    private ch;
+    private userExchange;
+    private userExchangeWrapper;
+
     static before() {
-        ConnectTest.stub_sendMessage = unit.stub(Message, 'sendMessage').returns(true);
+        ExchangeServiceUnitTest.stub_sendMessage = unit.stub(Message, 'sendMessage').returns(true);
     }
 
     static after() {
-        ConnectTest.stub_sendMessage.restore();
+        ExchangeServiceUnitTest.stub_sendMessage.restore();
+    }
+
+    before() {
+        this.ch = new ChannelMock();
+        unit.spy(this.ch, 'assertExchange');
+        unit.spy(this.ch, 'checkExchange');
+
+        this.userExchange = new UserExchange();
+        this.userExchangeWrapper = new ExchangeWrapper(this.userExchange, extractMetadataByDecorator(UserExchange, 'Exchange'));
+    }
+
+    after() {
+        this.ch = null;
+        this.userExchange = null;
+        this.userExchangeWrapper = null;
     }
 
     @test('- Should test with exchange as options')
     testNew(done) {
-        const ch = new ChannelMock();
-        unit.spy(ch, 'assertExchange');
-        const instance = new ExchangeManager(<any>ch, { name: 'user.exchange', type: ExchangeType.Direct });
+        const instance = new ExchangeManager(<any>this.ch, { name: 'user.exchange', type: ExchangeType.Direct });
         unit.function(instance.getName);
         unit.function(instance.assert);
         unit.function(instance.isAsserted);
@@ -34,7 +50,7 @@ class ConnectTest {
         unit.function(instance.sendMessage);
         const obs = instance.assert();
         obs.subscribe(_ => {
-            unit.bool(ch.assertExchange['calledOnce']).isTrue();
+            unit.bool(this.ch.assertExchange['calledOnce']).isTrue();
             unit.bool(instance.isAsserted()).isTrue();
             done();
         });
@@ -43,46 +59,51 @@ class ConnectTest {
     @test('- Should throw if invalid params')
     testInvalidParams() {
         const ch = new ChannelMock();
-        unit.exception(_ => {
-            unit.when('Invalid params', new ExchangeManager(<any>ch, <any>'xaxa'));
-        }).isInstanceOf(Error).hasProperty('message', 'Invalid exchange parameter');
+        unit
+            .exception(_ => {
+                unit.when('Invalid params', new ExchangeManager(<any>ch, <any>'xaxa'));
+            })
+            .isInstanceOf(Error)
+            .hasProperty('message', 'Invalid exchange parameter');
     }
 
     @test('- Should test with an exchange class')
     testUserExchange() {
-        const ch = new ChannelMock();
-        unit.spy(ch, 'assertExchange');
-        const instance = new ExchangeManager<UserExchange>(<any>ch, new UserExchange());
+        const instance = new ExchangeManager(<any>this.ch, this.userExchangeWrapper);
         const obs = instance.assert();
         obs.subscribe(_ => {
-            unit.bool(ch.assertExchange['calledOnce']).isTrue();
+            unit.bool(this.ch.assertExchange['calledOnce']).isTrue();
             unit.bool(instance.isAsserted()).isTrue();
-            unit.value(instance['exchange'].getName()).is('user.exchange');
+            unit.value(instance['exchange'].getMeta().name).is('user.exchange');
         });
     }
 
     @test('- Should test sendMessage')
     testSendMessage() {
-        const ch = new ChannelMock();
-        const instance = new ExchangeManager(<any>ch, new UserExchange());
+        const instance = new ExchangeManager(<any>this.ch, this.userExchangeWrapper);
         instance.sendMessage({ hello: 'world' });
-        unit.bool(ConnectTest.stub_sendMessage.calledOnce).isTrue();
-        unit.array(ConnectTest.stub_sendMessage.firstCall.args)
-            .is([ ch, { hello: 'world' }, { exchange: 'user.exchange', routingKey: null } ]);
+        unit.bool(ExchangeServiceUnitTest.stub_sendMessage.calledOnce).isTrue();
+        unit
+            .array(ExchangeServiceUnitTest.stub_sendMessage.firstCall.args)
+            .is([this.ch, { hello: 'world' }, { exchange: 'user.exchange', routingKey: null }]);
     }
 
     @test('- Test check exchange')
     testCheck(done) {
-        const ch = new ChannelMock();
-        unit.spy(ch, 'checkExchange');
-        const instance = new ExchangeManager(<any>ch, new UserExchange());
+        const instance = new ExchangeManager(<any>this.ch, this.userExchangeWrapper);
         const obs = instance.check();
         obs.subscribe(_ => {
-            unit.bool(ch.checkExchange['calledOnce']).isTrue();
-            unit.array(ch.checkExchange['firstCall'].args).is(['user.exchange']);
+            unit.bool(this.ch.checkExchange['calledOnce']).isTrue();
+            unit.array(this.ch.checkExchange['firstCall'].args).is(['user.exchange']);
             done();
         });
     }
 
+    @test('- Test ExchangeWrapper')
+    testExchangeWrapper() {
+        const wrapper = new ExchangeWrapper(null, null);
+        unit.value(wrapper.getMeta()).is(null);
+        unit.value(wrapper.getName()).is(null);
+        unit.value(wrapper.getAssertOptions()).is(null);
+    }
 }
-

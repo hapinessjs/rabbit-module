@@ -1,24 +1,15 @@
 import { Observable } from 'rxjs';
-import { ChannelManager } from './ChannelManager';
+import * as querystring from 'querystring';
+import { ChannelManager } from './index';
 import { Channel as ChannelInterface, Connection as ConnectionInterface, connect } from 'amqplib';
 import * as EventEmitter from 'events';
-import { Injectable } from "@hapiness/core";
+import { RabbitMQConfig_Connection } from '../interfaces/index';
 
-export const REGEX_URI = /^amqp:\/\/([^@\n]+:[^@\n]+@)?(\w+)(:?)(\d{0,6})(\/[\w%]+)?$/;
+export const REGEX_URI = /^amqp:\/\/([^@\n]+:[^@\n]+@)?(\w+)(:?)(\d{0,6})(\/[\w%]+)?(\?(?:&?[^=&\s]*=[^=&\s]*)+)?$/;
 
 const debug = require('debug')('hapiness:rabbitmq');
 
-export interface ConnectOptions {
-    host?: string;
-    port?: number;
-    login?: string;
-    password?: string;
-    vhost?: string;
-    uri?: string;
-};
-
 export class ConnectionManager extends EventEmitter {
-
     private connection: ConnectionInterface;
     private _isConnecting: boolean;
     private _isConnected: boolean;
@@ -28,32 +19,35 @@ export class ConnectionManager extends EventEmitter {
     private safeUri: string;
     private _connect: typeof connect;
 
-    constructor(options: ConnectOptions = {}) {
+    constructor(config?: RabbitMQConfig_Connection) {
         super();
         this._connect = connect;
         this.connection = null;
         this._isConnecting = false;
         this._isConnected = false;
-        this._options = Object.assign({
-            connection: { reconnect: true, reconnect_interval: 2000 }
-        }, options);
+        this._options = Object.assign(
+            {
+                reconnect: true,
+                reconnect_interval: 2000
+            },
+            config
+        );
 
-        if (options.uri) {
-            if (!options.uri.match(REGEX_URI)) {
+        if (this._options.uri) {
+            if (!this._options.uri.match(REGEX_URI)) {
                 throw new Error('Invalid uri');
             }
 
-            this.uri = options.uri;
+            this.uri = this._options.uri;
             this.safeUri = this.uri.replace(/\/\/(.+)@/, '');
         } else {
-            const port = options.port || 5672;
-            const host = options.host || 'localhost';
-            const vhost = (options.vhost || '').replace(/^\//, '%2F');
-            const credentials = (options.login && options.password) ?
-            `${options.login}:${options.password}@` : '';
-
-            this.uri = `amqp://${credentials}${host}:${port}/${vhost}`;
-            this.safeUri = `amqp://${credentials ? 'xxx@' : '' }${host}:${port}/${vhost}`;
+            const port = this._options.port || 5672;
+            const host = this._options.host || 'localhost';
+            const vhost = this._options.vhost ? `/${this._options.vhost.replace(/^\//, '%2F')}` : '';
+            const credentials = this._options.login && this._options.password ? `${this._options.login}:${this._options.password}@` : '';
+            const params = this._options.params ? `?${querystring.stringify(this._options.params)}` : '';
+            this.uri = `amqp://${credentials}${host}:${port}${vhost}${params}`;
+            this.safeUri = `amqp://${credentials ? 'xxx@' : ''}${host}:${port}${vhost}${params}`;
         }
     }
 
@@ -66,10 +60,9 @@ export class ConnectionManager extends EventEmitter {
     }
 
     connect(): Observable<ConnectionInterface> {
-        return this
-            .tryConnect();
-            // .retryWhen(errors => { console.log('NOPE'); return errors.delay(1); })
-            // .take(1);
+        return this.tryConnect();
+        // .retryWhen(errors => { console.log('NOPE'); return errors.delay(1); })
+        // .take(1);
     }
 
     tryConnect(): Observable<ConnectionInterface> {
@@ -86,7 +79,7 @@ export class ConnectionManager extends EventEmitter {
         return obs
             .flatMap(con => {
                 this.connection = con;
-                debug('connected, creating default channel ...')
+                debug('connected, creating default channel ...');
                 this.emit('opened', { connection: con });
                 const channel = new ChannelManager(this.connection);
                 return channel.create();
@@ -102,19 +95,18 @@ export class ConnectionManager extends EventEmitter {
             });
     }
 
-    private _reconnect(err?: any): Observable<ConnectionInterface> {
-        debug('reconnecting', err);
-        this.emit('reconnect', err);
+    // private _reconnect(err?: any): Observable<ConnectionInterface> {
+    //     debug('reconnecting', err);
+    //     this.emit('reconnect', err);
 
-        if (!this._options.connection.reconnect) {
-            return Observable.throw(err);
-        }
+    //     if (!this._options.connection.reconnect) {
+    //         return Observable.throw(err);
+    //     }
 
-        return Observable
-            .of(null)
-            .delay(500)
-            .delay(this._options.connection.reconnect_interval);
-    }
+    //     return Observable.of(null)
+    //         .delay(500)
+    //         .delay(this._options.connection.reconnect_interval);
+    // }
 
     getConnection() {
         return this.connection;
@@ -123,5 +115,4 @@ export class ConnectionManager extends EventEmitter {
     getDefaultChannel() {
         return this.defaultChannel;
     }
-
 }

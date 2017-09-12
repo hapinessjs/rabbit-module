@@ -1,9 +1,7 @@
-import { Observable } from 'rxjs';
 import { ChannelMock } from './Channel';
-import { ConfirmChannel } from "amqplib";
+import { ConfirmChannel } from 'amqplib';
 
 export class RabbitConnectionMock {
-
     createChannel() {
         return Promise.resolve(new ChannelMock());
     }
@@ -15,5 +13,4 @@ export class RabbitConnectionMock {
     createConfirmChannel(): Promise<ConfirmChannel> {
         return Promise.resolve(null);
     }
-
 }

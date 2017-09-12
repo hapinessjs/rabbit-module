@@ -1,13 +1,11 @@
-import { createDecorator, CoreDecorator, Type } from '@hapiness/core/core/decorators';
+import { createDecorator } from '@hapiness/core/core/decorators';
 import { Options } from 'amqplib';
-import { ExchangeType, GenericExchange, ExchangeBase } from './managers/ExchangeManager';
-import { QueueBase } from './managers/QueueManager';
-import { extractMetadataByDecorator } from "@hapiness/core/core";
+import { QueueInterface, ExchangeType, ExchangeInterface } from './interfaces/index';
 
 export interface Bind {
-    exchange: typeof ExchangeBase;
+    exchange: typeof ExchangeInterface;
     pattern: string;
-};
+}
 
 export interface QueueDecoratorInterface {
     name: string;
@@ -32,18 +30,18 @@ export const Exchange = createDecorator<ExchangeDecoratorInterface>('Exchange', 
 });
 
 export interface MessageDecoratorInterface {
-    queue: typeof QueueBase;
-    exchange?: typeof GenericExchange;
+    queue: typeof QueueInterface;
+    exchange?: typeof ExchangeInterface;
     isFallback?: boolean;
     routingKey?: string | RegExp;
     filter?: {
-        [key: string]: string | RegExp
-    }
+        [key: string]: string | RegExp;
+    };
 }
 export const Message = createDecorator<MessageDecoratorInterface>('Message', {
     queue: undefined,
     exchange: undefined,
     isFallback: false,
     routingKey: undefined,
-    filter: undefined,
+    filter: undefined
 });

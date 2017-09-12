@@ -2,10 +2,8 @@ import { Observable } from 'rxjs';
 import { Channel as ChannelInterface, Connection, Replies } from 'amqplib';
 
 export class ChannelManager {
-
     private connection: Connection;
     private ch: ChannelInterface;
-    private _prefetch: number;
 
     constructor(connection: Connection) {
         this.connection = connection;
@@ -19,9 +17,14 @@ export class ChannelManager {
         });
     }
 
-    public prefetch(count: number, global: boolean = false): Observable<Replies.Empty> {
+    public prefetch(
+        count: number,
+        global: boolean = false
+    ): Observable<Replies.Empty> {
         if (!this.ch) {
-            return Observable.throw(new Error('Create channel before setting prefetch'));
+            return Observable.throw(
+                new Error('Create channel before setting prefetch')
+            );
         }
 
         return Observable.fromPromise(this.ch.prefetch(count, global));
@@ -34,5 +37,4 @@ export class ChannelManager {
     public getChannel() {
         return this.ch;
     }
-
 }

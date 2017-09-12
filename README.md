@@ -39,14 +39,15 @@ RabbitMQ is a server that implement the AMQP 0-9-1 protocol.
 
 [Getting started with AMQP concepts](https://www.rabbitmq.com/tutorials/amqp-concepts.html)
 
-The module uses [amqp.node](https://github.com/squaremo/amqp.node).
+The module uses [amqp.node](https://github.com/squaremo/amqp.node) to connect to RabbitMQ and is architectured arround [the channel API
+provided](http://www.squaremobius.net/amqp.node/channel_api.html).
 
 ## Table of contents
 
-* [How this module works](#How this module works)
-* [Message routing](#message-routing)
+* [How this module works](#how-this-module-works)
+* [Message and routing](#message-and-routing)
 * [Using your module inside Hapiness application](#using-your-module-inside-hapiness-application)
-	* [`yarn` or `npm` it in your `package.json`](#yarn-or-npm-it-in-your-package)
+	* [`yarn` or `npm` it in your `package.json`](#yarn-or-npm-it-in-your-package.json)
 	* [Importing `RabbitMQModule` from the library](#importing-rabbitmqmodule-from-the-library)
 	* [Using `RabbitMQ` inside your application](#using-rabbitmq-inside-your-application)
 
@@ -68,7 +69,6 @@ This module supports only one connection at the same time.
 By default the module will retry to connect after a connection error.
 This behaviour is configurable.
 
-We provide three decorators to create exchanges, queues and also route messages.
 When the connection is ready the extension will find all classes with decorators and do all the work to get everything ready.
 
 ### Channels
@@ -78,17 +78,14 @@ You will be able to create them easily with the ```ChannelService```.
 
 ### Exchanges
 
-Create them using the decorator provided or inject ```ExchangeService``` and use the ```factory()``` method.
-The factory returns an ExchangeManager that will allow you to manage it. That's limit to asserting and checking basically for now.
+Exchanges needs a name and a type (```ExchangeType.Direct```, ```ExchangeType.Topic```, ```ExchangeType.Fanout```).
+You can also provide [assert options](http://www.squaremobius.net/amqp.node/channel_api.html#channel_assertExchange).
 
 ### Queues
 
-Create them using the decorator provided or inject ```QueueService``` and use the ```factory()``` method.
-Like the exchange factory it will returns a ```QueueManager``` instance that will let you manage it.
-It supports asserting, checking and consuming.
+Queues only requires a name. You can then provide binds and [assert options](http://www.squaremobius.net/amqp.node/channel_api.html#channel_assertQueue).
 
-
-## Message routing
+## Message and routing
 
 Each message sent on RabbitMQ is consumed by a queue.
 
@@ -97,11 +94,12 @@ That's a good option if you have only one type of message arriving on it.
 You can also call your own dispatcher there.
 
 It's also possible to receive plenty of different messages on the same queue.
-Creating one class to handle each message is then a good choice.
+Creating one class to handle each message is then a better choice.
 
 This module allow you to link a RabbitMessage to your custom message class.
+We provide a message router that will load the right message decorator class when receiving new messages.
 
-### Parameters:
+### Decorator parameters:
 
 * queue: the queue class where the message is consumed
 * exchange: the exchange class
@@ -189,7 +187,7 @@ Hapiness
         autoDelete: false
     }
 })
-export class UserExchange extends ExchangeBase {}
+export class UserExchange implements ExchangeInterface {}
 
 @Queue({
     name: 'user.queue',
@@ -202,7 +200,7 @@ export class UserExchange extends ExchangeBase {}
         pattern: 'user.*'
     }]
 })
-export class UserQueue extends QueueBase implements OnMessage {
+export class UserQueue implements QueueInterface {
 
     // Inject your services
     constructor(private _myService; MyService) {}
@@ -226,7 +224,7 @@ export class UserQueue extends QueueBase implements OnMessage {
     exchange: UserExchange,
     routingKey: 'user.edited'
 })
-export class UserCreatedMessage extends MessageBase implements OnMessage {
+export class UserCreatedMessage implements MessageInterface {
 
     constructor(private _myService: MyService) {
         super();
@@ -255,7 +253,7 @@ the ```onMessage()``` method defined in the queue.
 
 #### Using the services
 
- ```ConnectionService``` ```ChannelService``` ```ExchangeService``` ```QueueService```
+ ```ConnectionService``` ```ChannelService```
 
 ```javascript
 
@@ -263,23 +261,26 @@ class FooProvider {
 
     constructor(private _channelService: ChannelService) {}
 
-    // Upsert a channel by specifying a key to identify it
-    // one key per channel.
-    // The function returns a ChannelManager instance
     bar(): Observable<ChannelManager> {
-    	this._myChannelManager = this._channelService.upsert({ key: 'publish' });
+        // Upsert a channel by specifying a key to identify it
+        // one key per channel.
+        // The function returns a Observable of ChannelManager instance
+    	this._channelService.upsert('publish')
+            .subscribe(channelManager => {
+                this._myChannelManager = channelManager;
+            });
     }
 
 
-    // Use the created channel
     foo() {
+        // Use the created channel
         // Use the manager to retrieve the channel instance
         const ch = this._myChannelManager.getChannel();
 
         // ... or retrieve it with the shortcut getChannel and your key
         const ch = this._channelService.getChannel('publish');
 
-        // Use your channel like you will do with amqp.node
+        // Use any function from amqp.node
         ch.sendToQueue(...);
     }
 

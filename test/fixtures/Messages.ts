@@ -1,26 +1,22 @@
-import { Message } from "../../src/decorators";
-import { MessageBase, OnMessage, RabbitMessage } from "../../src/Message";
-import { MayonaiseService } from "./Services";
+import { Message } from '../../src/decorators';
+import { MayonaiseService } from './Services';
 import { UserExchange, AnotherExchange } from './Exchanges';
-import { Observable } from "rxjs";
-import { AnotherQueue, WorkerQueue } from "./Queues";
+import { Observable } from 'rxjs';
+import { AnotherQueue, WorkerQueue } from './Queues';
+import { MessageInterface, RabbitMessage } from '../../src/interfaces/index';
 
 @Message({
     queue: AnotherQueue,
     exchange: UserExchange,
     routingKey: 'user.created'
 })
-export class UserCreatedMessage extends MessageBase implements OnMessage {
-
-    constructor(private _mayo: MayonaiseService) {
-        super();
-    }
+export class UserCreatedMessage implements MessageInterface {
+    constructor(private _mayo: MayonaiseService) {}
 
     onMessage(message: RabbitMessage) {
         this._mayo.eat();
         return Observable.of({ ack: true });
     }
-
 }
 
 @Message({
@@ -28,12 +24,10 @@ export class UserCreatedMessage extends MessageBase implements OnMessage {
     exchange: UserExchange,
     routingKey: 'user.deleted'
 })
-export class UserDeletedMessage extends MessageBase implements OnMessage {
-
+export class UserDeletedMessage implements MessageInterface {
     onMessage(message: RabbitMessage) {
         return Observable.of({});
     }
-
 }
 
 @Message({
@@ -42,12 +36,10 @@ export class UserDeletedMessage extends MessageBase implements OnMessage {
     routingKey: 'order.created',
     filter: {}
 })
-export class OrderCreatedMessage extends MessageBase implements OnMessage {
-
+export class OrderCreatedMessage implements MessageInterface {
     onMessage(message: RabbitMessage) {
         return Observable.of({ reject: true });
     }
-
 }
 
 /*
@@ -60,12 +52,10 @@ export class OrderCreatedMessage extends MessageBase implements OnMessage {
         'content.action': /pokemons_(\w+)/
     }
 })
-export class PokemonsMessage extends MessageBase implements OnMessage {
-
+export class PokemonsMessage implements MessageInterface {
     onMessage(message: RabbitMessage) {
         return Observable.of({ ack: true });
     }
-
 }
 
 @Message({
@@ -74,12 +64,10 @@ export class PokemonsMessage extends MessageBase implements OnMessage {
         'content.action': 'generate_pdf'
     }
 })
-export class GeneratePdf extends MessageBase implements OnMessage {
-
+export class GeneratePdf implements MessageInterface {
     onMessage(message: RabbitMessage) {
         return Observable.of({ reject: true, requeue: true });
     }
-
 }
 
 /*
@@ -89,10 +77,16 @@ export class GeneratePdf extends MessageBase implements OnMessage {
 @Message({
     queue: WorkerQueue
 })
-export class FallbackMessage extends MessageBase implements OnMessage {
-
+export class FallbackMessage implements MessageInterface {
     onMessage(message: RabbitMessage) {
         return Observable.of(false);
     }
-
 }
+
+@Message({
+    queue: WorkerQueue,
+    filter: {
+        error: 'invalid_message_class'
+    }
+})
+export class InvalidMessage {}

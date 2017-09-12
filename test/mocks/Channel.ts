@@ -1,8 +1,4 @@
-import { Observable } from 'rxjs';
-import { generateMessage } from "./Message";
-
 export class ChannelMock {
-
     private consumeCallback;
 
     assertExchange() {
@@ -53,5 +49,4 @@ export class ChannelMock {
     publish(exchange: string, routingKey: string, message: Buffer, options) {
         return Promise.resolve(null);
     }
-
 }

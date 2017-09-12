@@ -1,5 +1,6 @@
-import { ExchangeType, ExchangeBase } from '../../src/managers/ExchangeManager';
-import { Exchange } from "../../src/decorators";
+import { Exchange } from '../../src/decorators';
+import { ExchangeType, ExchangeInterface } from '../../src/interfaces';
+import { Observable } from 'rxjs';
 
 @Exchange({
     name: 'user.exchange',
@@ -9,14 +10,13 @@ import { Exchange } from "../../src/decorators";
         autoDelete: false
     }
 })
-export class UserExchange extends ExchangeBase {}
-
+export class UserExchange {}
 
 @Exchange({
     name: 'another.exchange',
     type: ExchangeType.Direct
 })
-export class AnotherExchange extends ExchangeBase {}
+export class AnotherExchange implements ExchangeInterface {}
 
 @Exchange({
     name: 'events.all',
@@ -26,4 +26,8 @@ export class AnotherExchange extends ExchangeBase {}
         autoDelete: false
     }
 })
-export class EventsExchange extends ExchangeBase {}
+export class EventsExchange implements ExchangeInterface {
+    onAsserted() {
+        return Observable.of(null);
+    }
+}

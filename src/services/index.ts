@@ -1,4 +1,2 @@
-export * from './Channel';
-export * from './Connection';
-export * from './Exchange';
-export * from './Queue';
+export * from './channel.service';
+export * from './rabbit-connection.service';
