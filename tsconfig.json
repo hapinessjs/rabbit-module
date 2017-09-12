@@ -12,30 +12,12 @@
         "rootDir": ".",
         "skipLibCheck": true,
         "typeRoots": ["./node_modules/@types"],
-        "types": [
-            "node",
-            "bcrypt",
-            "boom",
-            "hapi",
-            "hoek",
-            "joi",
-            "fs-extra"
-        ],
-        "lib": [
-            "dom",
-            "es2015",
-            "es2016",
-            "es2017"
-        ],
+        "types": ["node", "boom", "hapi", "hoek", "joi", "fs-extra"],
+        "lib": ["dom", "es2015", "es2016", "es2017"],
         "noUnusedLocals": true
     },
     "tslint.autoFixOnSave": true,
     "compileOnSave": false,
     "buildOnSave": false,
-    "exclude": [
-        "node_modules",
-        "dist",
-        "tmp",
-        "dev"
-    ]
+    "exclude": ["node_modules", "dist", "tmp", "dev"]
 }
