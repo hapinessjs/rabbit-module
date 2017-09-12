@@ -1,4 +1,4 @@
-export interface RabbitMQConfig_Connection {
+export interface RabbitMQConfigConnection {
     uri?: string;
     host?: string;
     vhost?: string;
@@ -9,5 +9,5 @@ export interface RabbitMQConfig_Connection {
 }
 
 export interface RabbitMQConfig {
-    connection: RabbitMQConfig_Connection;
+    connection: RabbitMQConfigConnection;
 }

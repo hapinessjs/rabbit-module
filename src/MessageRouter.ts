@@ -104,8 +104,12 @@ export class MessageRouter {
             .filter(item => item.score > 0);
 
         score.sort((a, b) => {
-            if (a.score > b.score) return -1;
-            else if (a.score < b.score) return 1;
+            if (a.score > b.score) {
+                return -1;
+            } else if (a.score < b.score) {
+                return 1;
+            }
+
             return 0;
         });
 

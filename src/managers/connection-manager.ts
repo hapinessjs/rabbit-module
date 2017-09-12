@@ -3,7 +3,7 @@ import * as querystring from 'querystring';
 import { ChannelManager } from './index';
 import { Channel as ChannelInterface, Connection as ConnectionInterface, connect } from 'amqplib';
 import * as EventEmitter from 'events';
-import { RabbitMQConfig_Connection } from '../interfaces/index';
+import { RabbitMQConfigConnection } from '../interfaces/index';
 
 export const REGEX_URI = /^amqp:\/\/([^@\n]+:[^@\n]+@)?(\w+)(:?)(\d{0,6})(\/[\w%]+)?(\?(?:&?[^=&\s]*=[^=&\s]*)+)?$/;
 
@@ -19,7 +19,7 @@ export class ConnectionManager extends EventEmitter {
     private safeUri: string;
     private _connect: typeof connect;
 
-    constructor(config?: RabbitMQConfig_Connection) {
+    constructor(config?: RabbitMQConfigConnection) {
         super();
         this._connect = connect;
         this.connection = null;

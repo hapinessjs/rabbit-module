@@ -245,7 +245,7 @@ export class QueueServiceUnitTest {
             instance.consume();
             const message1 = generateMessage({ hello: 'world', result: { ack: true } }, { exchange: instance.getName() });
             unit
-                .exception(_ => {
+                .exception(() => {
                     unit.when('No consuming possible', this.ch.sendMessage(message1));
                 })
                 .isInstanceOf(Error)
