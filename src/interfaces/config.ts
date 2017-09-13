@@ -5,7 +5,11 @@ export interface RabbitMQConfigConnection {
     port?: number;
     login?: string;
     password?: string;
-    parameters?: Array<string | number | boolean>;
+    params?: Array<string | number | boolean>;
+    retry?: {
+        maximum_attempts: number;
+        delay: number;
+    };
 }
 
 export interface RabbitMQConfig {

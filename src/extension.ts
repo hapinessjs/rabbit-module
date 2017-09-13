@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 
 import { ConnectionManager } from './managers';
 import { RabbitMQConfig } from './interfaces/config';
+import { errorHandler } from '@hapiness/core/core';
 
 const debug = require('debug')('hapiness:rabbitmq');
 
@@ -27,6 +28,7 @@ export class RabbitMQExt implements OnExtensionLoad, OnModuleInstantiated {
     onExtensionLoad(module: CoreModule, config: RabbitMQConfig): Observable<Extension> {
         const connection = new RabbitMQExt.ConnectionManager(config.connection);
         debug('Extension connecting to rabbitmq');
+
         return connection.connect().flatMap(_ => {
             return Observable.of({
                 instance: this,
@@ -44,6 +46,17 @@ export class RabbitMQExt implements OnExtensionLoad, OnModuleInstantiated {
      */
     onModuleInstantiated(module: CoreModule, connection: ConnectionManager): Observable<any> {
         debug('bootstrapping module: asserting exchanges, queues, binds, messages routing');
+
+        // Try to reconnect and launch bootstrap when we have an error
+        connection.on('error', () => {
+            connection
+                .connect()
+                .flatMap(() => {
+                    return InitExtension.bootstrap(module, connection);
+                })
+                .subscribe(_ => {}, err => errorHandler(err));
+        });
+
         return InitExtension.bootstrap(module, connection);
     }
 }
