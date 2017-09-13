@@ -83,6 +83,7 @@ export class ConnectionUnitTest {
     testOptions() {
         const options = [
             [{ login: 'keyboard', password: 'cat' }, 'amqp://keyboard:cat@localhost:5672', 'amqp://xxx@localhost:5672'],
+            [{ retry: { maximum_attempts: 0 } }, 'amqp://localhost:5672', 'amqp://localhost:5672'],
             [{ params: { heartBeat: 30 } }, 'amqp://localhost:5672?heartBeat=30', 'amqp://localhost:5672?heartBeat=30'],
             [
                 { params: { heartBeat: 30 }, vhost: '/my_vhost' },
@@ -98,5 +99,58 @@ export class ConnectionUnitTest {
             unit.string(instance['uri']).is(option[1]);
             unit.string(instance['safeUri']).is(option[2]);
         });
+    }
+
+    @test(' - Test openConnection when errors')
+    testOpenConnectionErrors(done) {
+        const instance = new ConnectionManager({ retry: { delay: 100, maximum_attempts: 5 } });
+        instance['_connect'] = () => <any>Promise.reject(new Error('Cannot connect'));
+        instance.openConnection().subscribe(
+            () => done(new Error('Should not be here')),
+            err => {
+                unit
+                    .object(err)
+                    .isInstanceOf(Error)
+                    .hasProperty('message', 'Retry limit exceeded');
+                done();
+            }
+        );
+    }
+
+    @test(' - Test openConnection error and then ok')
+    testOpenConnectionErrorsAndThenOk(done) {
+        const instance = new ConnectionManager({ retry: { delay: 100, maximum_attempts: 5 } });
+        instance['_connect'] = () => <any>Promise.reject(new Error('Cannot connect'));
+        const connectStub = unit.stub(instance, '_connect');
+        setTimeout(() => {
+            instance['_connect'] = () => <any>Promise.resolve(null);
+        }, 300);
+
+        instance.openConnection().subscribe(
+            () => {
+                unit.number(connectStub.callCount).is(3);
+                done();
+            },
+            () => done(new Error('Should not be here'))
+        );
+    }
+
+    @test(' - Test handleDisconnection')
+    testhandleDisconnection(done) {
+        const instance = new ConnectionManager({ retry: { delay: 100, maximum_attempts: 5 } });
+        instance['connection'] = <any>new RabbitConnectionMock();
+        unit.function(instance['_handleDisconnection']);
+        instance['_handleDisconnection']();
+        Observable.fromEvent(instance, 'error').subscribe(
+            value => {
+                unit
+                    .object(value)
+                    .isInstanceOf(Error)
+                    .hasProperty('message', 'Connection error');
+                done();
+            },
+            err => done(new Error('Should not be here'))
+        );
+        instance['connection'].emit('error', new Error('Connection error'));
     }
 }

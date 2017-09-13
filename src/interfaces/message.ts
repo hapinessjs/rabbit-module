@@ -1,4 +1,4 @@
-import { Channel } from 'amqplib';
+import { Channel, Options } from 'amqplib';
 import { Observable } from 'rxjs';
 
 export interface MessageResultObject {
@@ -36,7 +36,7 @@ export interface RabbitMessage {
     content: Buffer | any;
 }
 
-export interface MessageOptions {
+export interface MessageOptions extends Options.Publish {
     queue?: string;
     exchange?: string;
     routingKey?: string;

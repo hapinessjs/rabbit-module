@@ -1,9 +1,30 @@
 import { Channel as ChannelInterface } from 'amqplib';
 import * as _has from 'lodash.has';
 import { MessageOptions } from './interfaces/index';
+import * as _pick from 'lodash.pick';
 
 export function sendMessage(ch: ChannelInterface, message: any, options: MessageOptions = {}): boolean {
-    let { json, headers } = Object.assign({ json: true, headers: {} }, options);
+    let { json } = Object.assign({ json: true }, options);
+    const allowedOptions = [
+        'expiration',
+        'userId',
+        'CC',
+        'mandatory',
+        'persistent',
+        'deliveryMode',
+        'BCC',
+        'contentType',
+        'contentEncoding',
+        'headers',
+        'priority',
+        'correlationId',
+        'replyTo',
+        'messageId',
+        'timestamp',
+        'type',
+        'appId'
+    ];
+    const publishOptions = _pick(options, allowedOptions);
 
     if (!ch) {
         throw new Error('Cannot send a message without channel');
@@ -17,8 +38,8 @@ export function sendMessage(ch: ChannelInterface, message: any, options: Message
         json = true;
     }
 
-    if (typeof headers !== 'object' || !headers) {
-        headers = {};
+    if (typeof publishOptions.headers !== 'object' || !publishOptions.headers) {
+        publishOptions.headers = {};
     }
 
     let encodedMessage;
@@ -28,16 +49,16 @@ export function sendMessage(ch: ChannelInterface, message: any, options: Message
         encodedMessage = message;
     }
 
-    if (typeof headers.json !== 'boolean') {
-        headers = {
+    if (typeof publishOptions.headers.json !== 'boolean') {
+        publishOptions.headers = {
             json
         };
     }
 
     if (options.queue) {
-        return ch.sendToQueue(options.queue, encodedMessage, { headers });
+        return ch.sendToQueue(options.queue, encodedMessage, publishOptions);
     } else if (options.exchange) {
-        return ch.publish(options.exchange, options.routingKey, encodedMessage, { headers });
+        return ch.publish(options.exchange, options.routingKey, encodedMessage, publishOptions);
     } else {
         throw new Error('Specify a queue or an exchange');
     }

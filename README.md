@@ -62,6 +62,25 @@ We provide three decorators, ```@Exchange```, ```@Queue```, ```@Message``` that 
 <!--First defines your exchanges, then the queues that can be bound to some of those and then you can create some messages to handle your
 RabbitMQ messages. See [Message Routing](#message-routing) below.-->
 
+### Configuration
+
+| Key | Type | Infos |
+| --- | --- | --- | --- |
+| connection | ```object``` | Connection Object | |
+
+### Connection object
+
+|  Key | Type  | Default | Infos  |
+|---|---|---|---|---|
+| uri  | ```string```  | ```undefined``` | other values are ignored if set  |
+| host  | ```string```  | ```localhost``` |   |
+| port | ```number```  | ```5672``` |   |
+| login | ```string``` | ```undefined``` | |
+| password | ```string``` | ```undefined``` | |
+| params | ```object```  | ```undefined``` | Parameters to include in querystring, like:<br> ```{ heartBeat: 30 }```  |
+| retry.delay | ```number``` | ```5000``` | Delay in ms to wait after trying to reconnect |
+| retry.maximum_attempts | ```number``` | ```-1``` | Maximum reconnection attempts, ```-1``` for ```Infinity``` |
+
 ### Connection & initialization
 
 This module supports only one connection at the same time.
@@ -71,19 +90,32 @@ This behaviour is configurable.
 
 When the connection is ready the extension will find all classes with decorators and do all the work to get everything ready.
 
+
 ### Channels
 
 Each connection can open several channels. Every operation on RabbitMQ occurs through channels.
-You will be able to create them easily with the ```ChannelService```.
+
+You can create them easily with the ```ChannelService```.
 
 ### Exchanges
 
-Exchanges needs a name and a type (```ExchangeType.Direct```, ```ExchangeType.Topic```, ```ExchangeType.Fanout```).
-You can also provide [assert options](http://www.squaremobius.net/amqp.node/channel_api.html#channel_assertExchange).
+Exchanges needs a name and a type.
+
+### Decorator parameters:
+
+* ```name: string```
+* ```type: ExchangeType``` (```ExchangeType.Direct```, ```ExchangeType.Topic```, ```ExchangeType.Fanout```)
+* ```options: Object``` *optional* [see exchange assert options](http://www.squaremobius.net/amqp.node/channel_api.html#channel_assertExchange)
 
 ### Queues
 
-Queues only requires a name. You can then provide binds and [assert options](http://www.squaremobius.net/amqp.node/channel_api.html#channel_assertQueue).
+Queues only requires a name.
+
+### Decorator parameters:
+
+* ```name: string```
+* ```binds: Array<Bind>``` *optional*
+* ```options: Object``` *optional* [see queue assert options](http://www.squaremobius.net/amqp.node/channel_api.html#channel_assertQueue)
 
 ## Message and routing
 
@@ -98,18 +130,19 @@ Creating one class to handle each message is then a better choice.
 
 This module allow you to link a RabbitMessage to your custom message class.
 We provide a message router that will load the right message decorator class when receiving new messages.
+If no message class is found the onMessage method on your queue is used as a fallback. If you did not provide this method an error
+will be throwned.
 
 ### Decorator parameters:
 
 * queue: the queue class where the message is consumed
 * exchange: the exchange class
 * routingKey: string or regex to match the routingKey of the message
-* filter: an simple one level object with keys and values. Keys are the path on the RabbitMQ message and values could be
+* filter: a simple one level object with keys and values. Keys are the path on the RabbitMQ message and values could be
 a string, number, boolean or RegExp.
 
 
 ## Using your module inside Hapiness application
-
 
 ### `yarn` or `npm` it in your `package.json`
 
@@ -129,7 +162,6 @@ $ yarn add @hapiness/rabbitmq
 }
 //...
 ```
-
 
 ### Importing `RabbitMQModule` from the library
 
@@ -157,11 +189,13 @@ Hapiness
             /* ... */
             RabbitMQExt.setConfig(
                 {
-                    host: 'localhost',
-                    port: 5276,
-                    vhost: 'my_vhost'
-                    login: 'xxx',
-                    password: 'xxxx'
+                    connection: {
+                        host: 'localhost',
+                        port: 5276,
+                        vhost: 'my_vhost'
+                        login: 'xxx',
+                        password: 'xxxx'
+                    }
                 }
             )
         ]
@@ -247,19 +281,25 @@ This configuration will create:
   * It will bind this queue to the previously created exchange with the routingKey ```user.*```
 * It will dispatch all messages which are sent to the exchange and have the routingKey ```user.edited``` consumed by the previously created queue
 to the new message we created.
-* All other messages sent to the exchange with a routingKey mathing the pattern ```user.*``` or sent directly to the queue will be consumed by
+* All other messages sent to the exchange with a routingKey matching the pattern ```user.*``` or sent directly to the queue will be consumed by
 the ```onMessage()``` method defined in the queue.
 
 
 #### Using the services
 
- ```ConnectionService``` ```ChannelService```
+Once the extension is loaded and ```RabbitMQ``` is connected you can use the services in your app.
+
+We provide two services:
+
+ ```ConnectionService```, ```ChannelService```, ```MessageService```
+
+ To send messages you can also use the sendMessage() utility provided.
 
 ```javascript
 
 class FooProvider {
 
-    constructor(private _channelService: ChannelService) {}
+    constructor(private _channelService: ChannelService, private _messageService: MessageService) {}
 
     bar(): Observable<ChannelManager> {
         // Upsert a channel by specifying a key to identify it
@@ -282,6 +322,9 @@ class FooProvider {
 
         // Use any function from amqp.node
         ch.sendToQueue(...);
+
+        this.sendToQueue(ch, { foo: 'bar' }, UserQueue);
+        this.publish(ch, { foo: 'bar' }, UserExchange, { routingKey: 'foo.bar' });
     }
 
 }

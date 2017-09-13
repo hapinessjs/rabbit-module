@@ -10,6 +10,8 @@ import { extractMetadataByDecorator } from '@hapiness/core/core';
 import { generateMessage } from '../../mocks/Message';
 import { Observable, Subscription } from 'rxjs';
 import { ErrorObservable } from 'rxjs/observable/ErrorObservable';
+import { RabbitMQExt } from '../../../src/extension';
+import { ConnectionManagerMock } from '../../mocks/ConnectionManager';
 
 @suite('- Unit InitExtension')
 export class InitExtensionUnitTest {
@@ -59,5 +61,49 @@ export class InitExtensionUnitTest {
             .isInstanceOf(Error)
             .hasProperty('message', 'Oops, something terrible happened!');
         unit.bool(obs.closed).isTrue();
+    }
+
+    @test('- Should test onModuleInstantiated connection.on(error) ok')
+    testonModuleInstantiatedConnectionError(done) {
+        unit.function(InitExtension.bootstrap);
+        const bootstrapStub = unit.stub(InitExtension, 'bootstrap');
+        bootstrapStub.returns(Observable.of(null));
+        const connection = new ConnectionManagerMock();
+        const instance = new RabbitMQExt();
+        unit.function(instance.onModuleInstantiated);
+        instance.onModuleInstantiated(<any>null, connection);
+        const connectStub = unit.stub(connection, 'connect');
+        connectStub.returns(
+            Observable.of(null)
+                .do(() => {
+                    unit.number(bootstrapStub.callCount).is(1);
+                    bootstrapStub.restore();
+                })
+                .catch(err => done(err))
+                .map(() => done())
+        );
+        connection.emit('error', new Error('Woops'));
+    }
+
+    @test('- Should test onModuleInstantiated connection.on(error) nok')
+    testonModuleInstantiatedConnectionErrorNOK(done) {
+        unit.function(InitExtension.bootstrap);
+        const bootstrapStub = unit.stub(InitExtension, 'bootstrap');
+        bootstrapStub.returns(Observable.of(null));
+        const connection = new ConnectionManagerMock();
+        const instance = new RabbitMQExt();
+        unit.function(instance.onModuleInstantiated);
+        instance.onModuleInstantiated(<any>null, connection);
+        const connectStub = unit.stub(connection, 'connect');
+        connectStub.returns(
+            Observable.of(null)
+                .flatMap(() => {
+                    unit.number(bootstrapStub.callCount).is(1);
+                    bootstrapStub.restore();
+                    return Observable.throw(new Error('Woops'));
+                })
+                .catch(() => done())
+        );
+        connection.emit('error', new Error('Woops'));
     }
 }

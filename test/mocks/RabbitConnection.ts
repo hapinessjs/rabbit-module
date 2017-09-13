@@ -1,7 +1,8 @@
 import { ChannelMock } from './Channel';
 import { ConfirmChannel } from 'amqplib';
+import { EventEmitter } from 'events';
 
-export class RabbitConnectionMock {
+export class RabbitConnectionMock extends EventEmitter {
     createChannel() {
         return Promise.resolve(new ChannelMock());
     }

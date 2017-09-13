@@ -28,7 +28,7 @@ export class ConnectionManager extends EventEmitter {
         this._isConnected = false;
         this._connectionOpen = false;
         this._options = Object.assign({}, config);
-        this._options.retry = Object.assign({ delay: 5000, maximum_attempts: Infinity }, this._options.retry);
+        this._options.retry = Object.assign({ delay: 5000, maximum_attempts: -1 }, this._options.retry);
 
         if (this._options.retry.maximum_attempts === -1) {
             this._options.retry.maximum_attempts = Infinity;
@@ -108,7 +108,7 @@ export class ConnectionManager extends EventEmitter {
             });
     }
 
-    _handleDisconnection() {
+    private _handleDisconnection() {
         this.connection.on('error', err => {
             this._isConnected = false;
             this._connectionOpen = false;
