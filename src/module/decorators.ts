@@ -1,5 +1,5 @@
 import { Options } from 'amqplib';
-import { createDecorator } from '@hapiness/core/core';
+import { createDecorator, CoreDecorator } from '@hapiness/core/core/decorators';
 import { QueueInterface, ExchangeType, ExchangeInterface } from './interfaces/index';
 
 export interface Bind {
@@ -12,7 +12,7 @@ export interface QueueDecoratorInterface {
     binds?: Array<Bind>;
     options?: Options.AssertQueue;
 }
-export const Queue = createDecorator<QueueDecoratorInterface>('Queue', {
+export const Queue: CoreDecorator<QueueDecoratorInterface> = createDecorator<QueueDecoratorInterface>('Queue', {
     name: undefined,
     binds: undefined,
     options: undefined
@@ -23,7 +23,7 @@ export interface ExchangeDecoratorInterface {
     type: ExchangeType;
     options?: Options.AssertExchange;
 }
-export const Exchange = createDecorator<ExchangeDecoratorInterface>('Exchange', {
+export const Exchange: CoreDecorator<ExchangeDecoratorInterface> = createDecorator<ExchangeDecoratorInterface>('Exchange', {
     name: undefined,
     type: undefined,
     options: undefined
@@ -38,7 +38,7 @@ export interface MessageDecoratorInterface {
         [key: string]: string | RegExp;
     };
 }
-export const Message = createDecorator<MessageDecoratorInterface>('Message', {
+export const Message: CoreDecorator<MessageDecoratorInterface> = createDecorator<MessageDecoratorInterface>('Message', {
     queue: undefined,
     exchange: undefined,
     isFallback: false,

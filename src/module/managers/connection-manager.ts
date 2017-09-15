@@ -1,7 +1,7 @@
 import { Observable } from 'rxjs';
 import * as querystring from 'querystring';
 import { ChannelManager } from './channel-manager';
-import { Channel as ChannelInterface, Connection as ConnectionInterface, connect } from 'amqplib';
+import { Channel as ChannelInterface, Connection, connect } from 'amqplib';
 import * as EventEmitter from 'events';
 import { RabbitMQConfigConnection } from '../interfaces';
 
@@ -10,7 +10,7 @@ export const REGEX_URI = /^amqp:\/\/([^@\n]+:[^@\n]+@)?(\w+)(:?)(\d{0,6})(\/[\w%
 const debug = require('debug')('hapiness:rabbitmq');
 
 export class ConnectionManager extends EventEmitter {
-    private _connection: ConnectionInterface;
+    private _connection: Connection;
     private _isConnecting: boolean;
     private _isConnected: boolean;
     private _defaultChannel: ChannelInterface;
@@ -55,7 +55,7 @@ export class ConnectionManager extends EventEmitter {
         return this._isConnected;
     }
 
-    openConnection(): Observable<ConnectionInterface> {
+    openConnection(): Observable<Connection> {
         return Observable.of(null)
             .flatMap(() => {
                 debug('try to open connection ...');
@@ -69,7 +69,7 @@ export class ConnectionManager extends EventEmitter {
             );
     }
 
-    connect(): Observable<ConnectionInterface> {
+    connect(): Observable<Connection> {
         if (this.isConnecting()) {
             return Observable.of(null);
         }
@@ -108,11 +108,11 @@ export class ConnectionManager extends EventEmitter {
         });
     }
 
-    get connection() {
+    get connection(): Connection {
         return this._connection;
     }
 
-    get defaultChannel() {
+    get defaultChannel(): ChannelInterface {
         return this._defaultChannel;
     }
 

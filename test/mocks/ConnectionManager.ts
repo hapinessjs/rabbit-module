@@ -2,6 +2,8 @@ import { ConnectionManager } from '../../src/index';
 import { RabbitConnectionMock } from './RabbitConnection';
 import { ChannelMock } from './Channel';
 import { Observable } from 'rxjs';
+import { Connection } from 'amqplib';
+
 const debug = require('debug')('hapiness:rabbitmq');
 
 export class ConnectionManagerMock extends ConnectionManager {
@@ -12,7 +14,7 @@ export class ConnectionManagerMock extends ConnectionManager {
         this['_defaultChannel'] = <any>new ChannelMock();
     }
 
-    connect() {
+    connect(): Observable<Connection> {
         debug('Mocking connection...');
         return Observable.of(this['_connection']).delay(500);
     }
