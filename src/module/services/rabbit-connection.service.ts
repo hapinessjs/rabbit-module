@@ -1,5 +1,5 @@
 import { Injectable, Inject } from '@hapiness/core';
-import { RabbitMQExt } from '../extension';
+import { RabbitMQExt } from '../rabbitmq.extension';
 import { ConnectionManager } from '../managers';
 import { Connection } from 'amqplib';
 
@@ -12,6 +12,6 @@ export class RabbitConnectionService {
     }
 
     public get connection(): Connection {
-        return this.connectionManager.getConnection();
+        return this.connectionManager.connection;
     }
 }

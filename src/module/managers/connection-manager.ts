@@ -1,32 +1,29 @@
 import { Observable } from 'rxjs';
 import * as querystring from 'querystring';
-import { ChannelManager } from './index';
+import { ChannelManager } from './channel-manager';
 import { Channel as ChannelInterface, Connection as ConnectionInterface, connect } from 'amqplib';
 import * as EventEmitter from 'events';
-import { RabbitMQConfigConnection } from '../interfaces/index';
+import { RabbitMQConfigConnection } from '../interfaces';
 
 export const REGEX_URI = /^amqp:\/\/([^@\n]+:[^@\n]+@)?(\w+)(:?)(\d{0,6})(\/[\w%]+)?(\?(?:&?[^=&\s]*=[^=&\s]*)+)?$/;
 
 const debug = require('debug')('hapiness:rabbitmq');
 
 export class ConnectionManager extends EventEmitter {
-    private connection: ConnectionInterface;
+    private _connection: ConnectionInterface;
     private _isConnecting: boolean;
     private _isConnected: boolean;
-    private defaultChannel: ChannelInterface;
+    private _defaultChannel: ChannelInterface;
     private _options: RabbitMQConfigConnection;
-    private uri: string;
-    private safeUri: string;
+    private _uri: string;
     private _connect: typeof connect;
-    private _connectionOpen: boolean;
 
     constructor(config?: RabbitMQConfigConnection) {
         super();
         this._connect = connect;
-        this.connection = null;
+        this._connection = null;
         this._isConnecting = false;
         this._isConnected = false;
-        this._connectionOpen = false;
         this._options = Object.assign({}, config);
         this._options.retry = Object.assign({ delay: 5000, maximum_attempts: -1 }, this._options.retry);
 
@@ -39,35 +36,30 @@ export class ConnectionManager extends EventEmitter {
                 throw new Error('Invalid uri');
             }
 
-            this.uri = this._options.uri;
-            this.safeUri = this.uri.replace(/\/\/(.+)@/, '');
+            this._uri = this._options.uri;
         } else {
             const port = this._options.port || 5672;
             const host = this._options.host || 'localhost';
             const vhost = this._options.vhost ? `/${this._options.vhost.replace(/^\//, '%2F')}` : '';
             const credentials = this._options.login && this._options.password ? `${this._options.login}:${this._options.password}@` : '';
             const params = this._options.params ? `?${querystring.stringify(this._options.params)}` : '';
-            this.uri = `amqp://${credentials}${host}:${port}${vhost}${params}`;
-            this.safeUri = `amqp://${credentials ? 'xxx@' : ''}${host}:${port}${vhost}${params}`;
+            this._uri = `amqp://${credentials}${host}:${port}${vhost}${params}`;
         }
     }
 
-    isConnecting() {
+    isConnecting(): boolean {
         return this._isConnecting;
     }
 
-    isConnected() {
+    isConnected(): boolean {
         return this._isConnected;
     }
 
-    openConnection() {
+    openConnection(): Observable<ConnectionInterface> {
         return Observable.of(null)
             .flatMap(() => {
                 debug('try to open connection ...');
-                return Observable.fromPromise(this._connect(this.uri));
-            })
-            .do(_ => {
-                this._connectionOpen = true;
+                return Observable.fromPromise(this._connect(this._uri));
             })
             .retryWhen(errors =>
                 errors
@@ -84,44 +76,47 @@ export class ConnectionManager extends EventEmitter {
 
         this._isConnecting = true;
 
-        debug('Connecting', this.safeUri);
+        debug('Connecting', this._uri);
 
         this.emit('connecting');
         const obs = this.openConnection();
         return obs
             .flatMap(con => {
-                this.connection = con;
+                this._connection = con;
                 this._handleDisconnection();
                 debug('connected, creating default channel ...');
                 this.emit('opened', { connection: con });
-                const channel = new ChannelManager(this.connection);
+                const channel = new ChannelManager(this._connection);
                 return channel.create();
             })
             .map(ch => {
                 this._isConnected = true;
                 this._isConnecting = false;
-                this.defaultChannel = ch;
+                this._defaultChannel = ch;
                 debug('... channel created, RabbitMQ ready');
                 this.emit('connected');
                 this.emit('ready');
-                return this.connection;
+                return this._connection;
             });
     }
 
-    private _handleDisconnection() {
-        this.connection.on('error', err => {
+    private _handleDisconnection(): void {
+        this._connection.on('error', err => {
             this._isConnected = false;
-            this._connectionOpen = false;
             this._isConnecting = false;
             this.emit('error', err);
         });
     }
 
-    getConnection() {
-        return this.connection;
+    get connection() {
+        return this._connection;
     }
 
-    getDefaultChannel() {
-        return this.defaultChannel;
+    get defaultChannel() {
+        return this._defaultChannel;
+    }
+
+    get uri(): string {
+        return this._uri;
     }
 }

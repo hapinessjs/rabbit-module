@@ -1,14 +1,3 @@
-import { Channel, Options } from 'amqplib';
-import { Observable } from 'rxjs';
-
-export interface MessageResultObject {
-    ack?: boolean;
-    reject?: boolean;
-    requeue?: boolean;
-}
-
-export type MessageResult = MessageResultObject | Boolean;
-
 export interface RabbitMessage {
     fields: {
         consumerTag: string;
@@ -34,16 +23,4 @@ export interface RabbitMessage {
         clusterId?: string;
     };
     content: Buffer | any;
-}
-
-export interface MessageOptions extends Options.Publish {
-    queue?: string;
-    exchange?: string;
-    routingKey?: string;
-    headers?: any;
-    json?: boolean;
-}
-
-export interface MessageInterface {
-    onMessage(message: RabbitMessage, ch: Channel): Observable<MessageResult | null>;
 }

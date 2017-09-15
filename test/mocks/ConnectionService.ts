@@ -2,7 +2,7 @@ import { ConnectionManager } from '../../src/index';
 import { ConnectionManagerMock } from './ConnectionManager';
 import { Connection } from 'amqplib';
 import { Injectable, Inject } from '@hapiness/core';
-import { RabbitMQExt } from '../../src/extension';
+import { RabbitMQExt } from '../../src/module/rabbitmq.extension';
 
 @Injectable()
 export class ConnectionServiceMock {
@@ -13,6 +13,6 @@ export class ConnectionServiceMock {
     }
 
     public get connection(): Connection {
-        return this._connectionManager.getConnection();
+        return this._connectionManager.connection;
     }
 }

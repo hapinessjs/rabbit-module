@@ -1,10 +1,10 @@
 import { test, suite } from 'mocha-typescript';
 import * as unit from 'unit.js';
 
-import * as Message from '../../../src/Message';
+import * as Message from '../../../src/module/message';
 import { Observable } from 'rxjs/Observable';
 
-import { QueueManager, QueueWrapper } from '../../../src/managers';
+import { QueueManager, QueueWrapper } from '../../../src/module/managers';
 import { ChannelMock } from '../../mocks/Channel';
 import { UserQueue, AnotherQueue } from '../../fixtures/Queues';
 import { UserExchange } from '../../fixtures/Exchanges';
@@ -76,7 +76,7 @@ export class QueueServiceUnitTest {
         const obs = instance.assert();
         obs.subscribe(_ => {
             unit.bool(instance.isAsserted()).isTrue();
-            unit.bool(instance['queue']['onAsserted'].calledOnce).isTrue();
+            unit.bool(instance['_queue']['onAsserted']['calledOnce']).isTrue();
             done();
         });
     }

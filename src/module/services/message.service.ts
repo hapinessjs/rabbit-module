@@ -1,22 +1,16 @@
 import { Injectable } from '@hapiness/core';
 import { ChannelService } from './channel.service';
-import { QueueInterface } from '../interfaces/queue';
-import { ExchangeInterface } from '../interfaces/exchange';
-import { MessageOptions } from '../interfaces/message';
-import { sendMessage } from '../Message';
+import { MessageOptions, QueueInterface, ExchangeInterface } from '../interfaces';
+import { sendMessage } from '../message';
 import { QueueDecoratorInterface, ExchangeDecoratorInterface } from '../decorators';
 import { extractMetadataByDecorator } from '@hapiness/core/core';
 import { Channel } from 'amqplib';
 
-export interface CreateChannelOptions {
-    prefetch?: number;
-    global?: boolean;
-}
 @Injectable()
 export class MessageService {
-    private sendMessage;
+    private _sendMessage;
     constructor(private _channelService: ChannelService) {
-        this.sendMessage = sendMessage;
+        this._sendMessage = sendMessage;
     }
 
     sendToQueue(message, queue: typeof QueueInterface, options?: MessageOptions): boolean {
@@ -42,6 +36,6 @@ export class MessageService {
             ch = this._channelService.getChannel();
         }
 
-        return this.sendMessage(ch, message, options);
+        return this._sendMessage(ch, message, options);
     }
 }

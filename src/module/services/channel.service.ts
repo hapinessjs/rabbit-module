@@ -12,16 +12,16 @@ export interface CreateChannelOptions {
 @Injectable()
 export class ChannelService {
     private _channels = {};
-    private connection: Connection;
+    private _connection: Connection;
 
     constructor(private _connectionService: RabbitConnectionService) {
         if (!this._connectionService.connectionManager.isConnected()) {
             throw new Error('Connect to RabbitMQ before using ChannelService');
         }
 
-        this.connection = this._connectionService.connection;
-        const channel = new ChannelManager(this.connection);
-        channel.setChannel(this._connectionService.connectionManager.getDefaultChannel());
+        this._connection = this._connectionService.connection;
+        const channel = new ChannelManager(this._connection);
+        channel.setChannel(this._connectionService.connectionManager.defaultChannel);
         this._channels['default'] = channel;
     }
 
@@ -30,7 +30,7 @@ export class ChannelService {
             return Observable.of(this.get(key));
         }
 
-        const channel = new ChannelManager(this.connection);
+        const channel = new ChannelManager(this._connection);
         return channel
             .create()
             .flatMap(ch => (isNaN(prefetch) ? Observable.of(ch) : channel.prefetch(prefetch, global).map(_ => ch)))
@@ -49,7 +49,7 @@ export class ChannelService {
         return Observable.of(ch);
     }
 
-    public get(key): ChannelManager | null {
+    public get(key): ChannelManager | undefined {
         return this._channels[key];
     }
 

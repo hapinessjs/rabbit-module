@@ -1,17 +1,18 @@
-import { QueueDecoratorInterface } from '../decorators';
+import { QueueDecoratorInterface, Bind } from '../decorators';
 import { Options } from 'amqplib';
+import { QueueInterface } from '../interfaces';
 
 export class QueueWrapper {
-    private instance: any;
-    private meta: QueueDecoratorInterface;
+    private _instance: QueueInterface;
+    private _meta: QueueDecoratorInterface;
 
-    constructor(instance, meta: QueueDecoratorInterface) {
-        this.instance = instance;
-        this.meta = meta;
+    constructor(instance: QueueInterface, meta: QueueDecoratorInterface) {
+        this._instance = instance;
+        this._meta = meta;
     }
 
     public getMeta(): QueueDecoratorInterface {
-        return this.meta;
+        return this._meta;
     }
 
     public getAssertOptions(): Options.AssertExchange {
@@ -30,7 +31,7 @@ export class QueueWrapper {
         }
     }
 
-    public getBinds() {
+    public getBinds(): Array<Bind> {
         try {
             return this.getMeta().binds;
         } catch (err) {
@@ -38,7 +39,7 @@ export class QueueWrapper {
         }
     }
 
-    getInstance() {
-        return this.instance;
+    getInstance(): QueueInterface {
+        return this._instance;
     }
 }

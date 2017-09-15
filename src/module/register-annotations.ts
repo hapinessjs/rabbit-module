@@ -7,11 +7,12 @@ import { ConnectionManager } from './managers';
 import { QueueDecoratorInterface, ExchangeDecoratorInterface, MessageDecoratorInterface } from './decorators';
 import { QueueManager } from './managers';
 import { ExchangeManager, ExchangeWrapper, QueueWrapper } from './managers';
-import { MessageRouter } from './MessageRouter';
+import { MessageRouter } from './message-router';
 import { RabbitMessage, MessageResult, MessageInterface } from './interfaces';
+import { errorHandler } from '@hapiness/core/core';
 const debug = require('debug')('hapiness:rabbitmq');
 
-export class InitExtension {
+export class RegisterAnnotations {
     public static bootstrap(module, connection: ConnectionManager) {
         debug('bootstrap extension');
         return this.buildExchanges(module, connection)
@@ -29,7 +30,7 @@ export class InitExtension {
             .flatMap(_ => this.metadataFromDeclarations<ExchangeDecoratorInterface>(_.declarations, 'Exchange'))
             .flatMap(_ => DependencyInjection.instantiateComponent(_.token, module.di).map(instance => ({ instance, _ })))
             .flatMap(({ instance, _ }) => {
-                const exchange = new ExchangeManager(connection.getDefaultChannel(), new ExchangeWrapper(instance, _.data));
+                const exchange = new ExchangeManager(connection.defaultChannel, new ExchangeWrapper(instance, _.data));
                 return exchange.assert();
             });
     }
@@ -42,7 +43,7 @@ export class InitExtension {
                 .flatMap(_ => DependencyInjection.instantiateComponent(_.token, module.di).map(instance => ({ instance, _ })))
                 // Assert queue
                 .mergeMap(({ instance, _ }) => {
-                    const queue = new QueueManager(connection.getDefaultChannel(), new QueueWrapper(instance, _.data));
+                    const queue = new QueueManager(connection.defaultChannel, new QueueWrapper(instance, _.data));
                     return Observable.forkJoin(queue.assert(), Observable.of(_));
                 })
                 // Bind queue
@@ -67,23 +68,23 @@ export class InitExtension {
                     return this.registerMessages(module, queue, messageRouter)
                         .defaultIfEmpty(null)
                         .toArray()
-                        .map(() => this._consumeQueue(queue, messageRouter));
+                        .map(() => this.consumeQueue(queue, messageRouter));
                 })
         );
     }
 
-    private static _consumeQueue(queue: QueueManager, messageRouter: MessageRouter) {
+    static consumeQueue(queue: QueueManager, messageRouter: MessageRouter) {
         debug(`Creating dispatcher for queue ${queue.getName()}`);
         const messageDispatcher = (ch: ChannelInterface, message: RabbitMessage): Observable<MessageResult> => {
             return messageRouter.dispatch(ch, message).catch(err => {
-                if (err.code === 'MESSAGE_CLASS_NOT_FOUND' && typeof queue['queue']['onMessage'] === 'function') {
-                    return queue['queue']['onMessage'](message, ch);
+                if (err.code === 'MESSAGE_CLASS_NOT_FOUND' && typeof queue['_queue']['onMessage'] === 'function') {
+                    return queue['_queue']['onMessage'](message, ch);
                 }
 
                 return Observable.throw(err);
             });
         };
-        queue.consume(messageDispatcher);
+        queue.consume(messageDispatcher).subscribe(() => {}, err => errorHandler(err));
     }
 
     public static registerMessages(module, queue: QueueManager, messageRouter: MessageRouter) {

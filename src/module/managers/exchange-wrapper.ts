@@ -1,17 +1,18 @@
 import { ExchangeDecoratorInterface } from '../decorators';
 import { Options } from 'amqplib';
+import { ExchangeInterface } from '../interfaces';
 
 export class ExchangeWrapper {
-    private meta: ExchangeDecoratorInterface;
-    private instance;
+    private _meta: ExchangeDecoratorInterface;
+    private _instance: ExchangeInterface;
 
-    constructor(instance, meta: ExchangeDecoratorInterface) {
-        this.instance = instance;
-        this.meta = meta;
+    constructor(instance: ExchangeInterface, meta: ExchangeDecoratorInterface) {
+        this._instance = instance;
+        this._meta = meta;
     }
 
     public getMeta(): ExchangeDecoratorInterface {
-        return this.meta;
+        return this._meta;
     }
 
     public getAssertOptions(): Options.AssertExchange {
@@ -22,7 +23,7 @@ export class ExchangeWrapper {
         }
     }
 
-    public getName() {
+    public getName(): string {
         try {
             return this.getMeta().name;
         } catch (err) {
@@ -30,7 +31,7 @@ export class ExchangeWrapper {
         }
     }
 
-    getInstance() {
-        return this.instance;
+    getInstance(): ExchangeInterface {
+        return this._instance;
     }
 }

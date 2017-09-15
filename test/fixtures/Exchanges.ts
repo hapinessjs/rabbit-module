@@ -1,5 +1,5 @@
-import { Exchange } from '../../src/decorators';
-import { ExchangeType, ExchangeInterface } from '../../src/interfaces';
+import { Exchange } from '../../src/module/decorators';
+import { ExchangeType, ExchangeInterface } from '../../src/module/interfaces';
 import { Observable } from 'rxjs';
 
 @Exchange({

@@ -1,7 +1,7 @@
 import { test, suite } from 'mocha-typescript';
 import * as unit from 'unit.js';
 
-import { ChannelManager } from '../../../src/managers';
+import { ChannelManager } from '../../../src/module/managers';
 import { RabbitConnectionMock } from '../../mocks/RabbitConnection';
 import { ChannelMock } from '../../mocks/Channel';
 

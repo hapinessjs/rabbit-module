@@ -2,7 +2,7 @@ import * as unit from 'unit.js';
 import { test, suite } from 'mocha-typescript';
 
 import { HapinessModule, OnStart, Hapiness } from '@hapiness/core';
-import { RabbitMQExt } from '../../src/extension';
+import { RabbitMQExt } from '../../src/module/rabbitmq.extension';
 
 import {
     UserCreatedMessage,
@@ -16,7 +16,7 @@ import { MayonaiseService } from '../fixtures/Services';
 import { AnotherQueue, UserQueue, WorkerQueue } from '../fixtures/Queues';
 import { EventsExchange, UserExchange } from '../fixtures/Exchanges';
 import { RabbitMQModule } from '../../src/module';
-import { RabbitConnectionService } from '../../src/services';
+import { RabbitConnectionService } from '../../src/module/services';
 import { ConnectionManagerMock } from '../mocks/ConnectionManager';
 // import { ConnectionManager } from './../../src/managers';
 
@@ -49,7 +49,8 @@ export class RabbitMQIntegrationTest {
             onStart() {
                 unit.object(this._connectionService).isInstanceOf(RabbitConnectionService);
                 unit.object(this._connectionService.connectionManager);
-                unit.string(this._connectionService.connectionManager['uri']);
+                // unit.string(this._connectionService.connectionManager['uri']).is('amqp://username:*********@localhost:5672/%2Fmy_vhost');
+                unit.string(this._connectionService.connectionManager.uri).is('amqp://localhost:5672');
                 unit.object(this._connectionService.connection);
                 done();
             }

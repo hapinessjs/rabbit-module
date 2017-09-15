@@ -8,12 +8,12 @@ export class ConnectionManagerMock extends ConnectionManager {
     constructor() {
         super(<any>{});
         this['_isConnected'] = true;
-        this['connection'] = <any>new RabbitConnectionMock();
-        this['defaultChannel'] = <any>new ChannelMock();
+        this['_connection'] = <any>new RabbitConnectionMock();
+        this['_defaultChannel'] = <any>new ChannelMock();
     }
 
     connect() {
         debug('Mocking connection...');
-        return Observable.of(this['connection']).delay(500);
+        return Observable.of(this['_connection']).delay(500);
     }
 }

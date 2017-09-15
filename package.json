@@ -1,8 +1,9 @@
 {
     "name": "@hapiness/rabbitmq",
-    "version": "1.0.0",
-    "description": "",
+    "version": "1.0.0-rc.7",
+    "description": "Hapiness module for rabbitmq",
     "main": "index.js",
+    "types": "index.d.ts",
     "scripts": {
         "test": "make test",
         "pretest": "make pretest",
@@ -12,8 +13,62 @@
         "build": "make tsc",
         "postbuild": "make packaging"
     },
-    "author": "",
-    "license": "ISC",
+    "repository": {
+        "type": "git",
+        "url": "git+ssh://git@github.com/hapinessjs/rabbitmq-module.git"
+    },
+    "keywords": [
+        "HapiJS",
+        "Hapi",
+        "Hapiness",
+        "Framework",
+        "NodeJS",
+        "Rabbit",
+        "RabbitMQ",
+        "Node",
+        "HTTP",
+        "API",
+        "REST",
+        "Streams",
+        "Async",
+        "Decorator",
+        "RxJS",
+        "Rx",
+        "ReactiveX",
+        "Observable",
+        "Observer",
+        "Module",
+        "ES2015",
+        "ES2016",
+        "ES2017",
+        "ES6",
+        "ES7",
+        "ES8",
+        "Typescript"
+    ],
+    "contributors": [
+        {
+            "name": "Julien Fauville",
+            "url": "https://github.com/Juneil"
+        },
+        {
+            "name": "Antoine Gomez",
+            "url": "https://github.com/antoinegomez"
+        },
+        {
+            "name": "Sébastien Ritz",
+            "url": "https://github.com/reptilbud"
+        },
+        {
+            "name": "Nicolas Jessel",
+            "url": "https://github.com/njl07"
+        }
+    ],
+    "license": "SEE LICENSE IN https://github.com/hapinessjs/rabbitmq-module/blob/master/LICENSE.md",
+    "bugs": {
+        "url": "https://github.com/hapinessjs/rabbitmq-module/issues"
+    },
+    "homepage": "https://github.com/hapinessjs/rabbitmq-module#readme",
     "dependencies": {
         "@types/amqplib": "~0.5.4",
         "amqplib": "~0.5.1",

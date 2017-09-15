@@ -1,7 +1,7 @@
 import { test, suite } from 'mocha-typescript';
 import * as unit from 'unit.js';
 
-import { MessageRouter } from '../../src/MessageRouter';
+import { MessageRouter } from '../../src/module/message-router';
 import { Observable } from 'rxjs/Observable';
 
 import { ChannelMock } from '../mocks/Channel';
@@ -160,6 +160,10 @@ export class MessageRouterUnitTest {
         );
 
         Observable.forkJoin(pending).subscribe(_ => {
+            unit.number(this.messageRouter.dispatch['callCount']).is(5);
+            unit.number(this.messageRouter.findClass['callCount']).is(11);
+            unit.array(this.messageRouter.registerMessage['firstCall'].args).is([userDeletedMessage]);
+            unit.number(this.messageRouter['_testValue']['callCount']).is(34);
             done();
         });
     }

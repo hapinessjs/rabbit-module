@@ -1,9 +1,9 @@
-import { Message } from '../../src/decorators';
+import { Message } from '../../src/module/decorators';
 import { MayonaiseService } from './Services';
 import { UserExchange, AnotherExchange } from './Exchanges';
 import { Observable } from 'rxjs';
 import { AnotherQueue, WorkerQueue } from './Queues';
-import { MessageInterface, RabbitMessage } from '../../src/interfaces/index';
+import { MessageInterface, RabbitMessage } from '../../src/module/interfaces';
 
 @Message({
     queue: AnotherQueue,

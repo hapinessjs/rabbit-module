@@ -1,5 +1,5 @@
-import { createDecorator } from '@hapiness/core/core/decorators';
 import { Options } from 'amqplib';
+import { createDecorator } from '@hapiness/core/core';
 import { QueueInterface, ExchangeType, ExchangeInterface } from './interfaces/index';
 
 export interface Bind {

@@ -1,6 +1,6 @@
-import { Queue } from '../../src/decorators';
+import { Queue } from '../../src/module/decorators';
 import { UserExchange, EventsExchange } from './Exchanges';
-import { MessageResult, QueueInterface } from '../../src/interfaces';
+import { MessageResult, QueueInterface } from '../../src/module/interfaces';
 import { Observable } from 'rxjs';
 
 @Queue({

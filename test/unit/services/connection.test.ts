@@ -1,7 +1,7 @@
 import { test, suite } from 'mocha-typescript';
 import * as unit from 'unit.js';
 
-import { RabbitConnectionService } from '../../../src/services/index';
+import { RabbitConnectionService } from '../../../src/module/services';
 import { ConnectionManagerMock } from '../../mocks/ConnectionManager';
 import { RabbitConnectionMock } from '../../mocks/RabbitConnection';
 

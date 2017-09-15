@@ -1,12 +1,12 @@
 import { test, suite } from 'mocha-typescript';
 import * as unit from 'unit.js';
 
-import * as Message from '../../../src/Message';
+import * as Message from '../../../src/module/message';
 
-import { ExchangeManager, ExchangeWrapper } from '../../../src/managers/index';
+import { ExchangeManager, ExchangeWrapper } from '../../../src/module/managers';
 import { ChannelMock } from '../../mocks/Channel';
 import { UserExchange } from '../../fixtures/Exchanges';
-import { ExchangeType } from '../../../src/interfaces/index';
+import { ExchangeType } from '../../../src/module/interfaces';
 import { extractMetadataByDecorator } from '@hapiness/core/core';
 
 @suite('- Unit Exchange')
@@ -74,7 +74,7 @@ export class ExchangeServiceUnitTest {
         obs.subscribe(_ => {
             unit.bool(this.ch.assertExchange['calledOnce']).isTrue();
             unit.bool(instance.isAsserted()).isTrue();
-            unit.value(instance['exchange'].getMeta().name).is('user.exchange');
+            unit.string(instance.getName()).is('user.exchange');
         });
     }
 

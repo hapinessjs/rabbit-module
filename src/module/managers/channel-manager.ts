@@ -2,39 +2,35 @@ import { Observable } from 'rxjs';
 import { Channel as ChannelInterface, Connection, Replies } from 'amqplib';
 
 export class ChannelManager {
-    private connection: Connection;
+    private _connection: Connection;
     private ch: ChannelInterface;
 
     constructor(connection: Connection) {
-        this.connection = connection;
+        this._connection = connection;
     }
 
-    public create() {
-        const obs = Observable.fromPromise(this.connection.createChannel());
+    public create(): Observable<ChannelInterface> {
+        const obs = Observable.fromPromise(this._connection.createChannel());
         return obs.map(ch => {
             this.ch = ch;
             return ch;
         });
     }
 
-    public prefetch(
-        count: number,
-        global: boolean = false
-    ): Observable<Replies.Empty> {
+    public prefetch(count: number, global: boolean = false): Observable<Replies.Empty> {
         if (!this.ch) {
-            return Observable.throw(
-                new Error('Create channel before setting prefetch')
-            );
+            return Observable.throw(new Error('Create channel before setting prefetch'));
         }
 
         return Observable.fromPromise(this.ch.prefetch(count, global));
     }
 
-    public setChannel(ch) {
+    public setChannel(ch): ChannelManager {
         this.ch = ch;
+        return this;
     }
 
-    public getChannel() {
+    public getChannel(): ChannelInterface {
         return this.ch;
     }
 }

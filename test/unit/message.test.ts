@@ -1,7 +1,7 @@
 import { test, suite } from 'mocha-typescript';
 import * as unit from 'unit.js';
 
-import * as Message from '../../src/Message';
+import * as Message from '../../src/module/message';
 
 import { ChannelMock } from '../mocks/Channel';
 import { generateMessage } from '../mocks/Message';

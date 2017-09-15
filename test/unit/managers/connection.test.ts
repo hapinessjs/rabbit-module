@@ -3,7 +3,7 @@ import * as unit from 'unit.js';
 
 import { Observable } from 'rxjs/Observable';
 
-import { ConnectionManager } from '../../../src/managers';
+import { ConnectionManager } from '../../../src/module/managers';
 import { RabbitConnectionMock } from '../../mocks/RabbitConnection';
 import { ChannelMock } from '../../mocks/Channel';
 
@@ -19,8 +19,6 @@ export class ConnectionUnitTest {
         unit.object(instance).isInstanceOf(ConnectionManager);
         unit.function(instance.isConnected);
         unit.function(instance.isConnecting);
-        unit.function(instance.getDefaultChannel);
-        unit.function(instance.getConnection);
         unit.function(instance.connect);
         data.instance = instance;
     }
@@ -40,8 +38,8 @@ export class ConnectionUnitTest {
             unit.object(_).isInstanceOf(RabbitConnectionMock);
             unit.bool(data.instance.isConnected()).isTrue();
             unit.bool(data.instance.isConnecting()).isFalse();
-            unit.object(data.instance.getConnection()).is(_);
-            unit.object(data.instance.getDefaultChannel()).isInstanceOf(ChannelMock);
+            unit.object(data.instance.connection).is(_);
+            unit.object(data.instance.defaultChannel).isInstanceOf(ChannelMock);
             done();
         });
 
@@ -82,22 +80,17 @@ export class ConnectionUnitTest {
     @test(' - Test options')
     testOptions() {
         const options = [
-            [{ login: 'keyboard', password: 'cat' }, 'amqp://keyboard:cat@localhost:5672', 'amqp://xxx@localhost:5672'],
-            [{ retry: { maximum_attempts: 0 } }, 'amqp://localhost:5672', 'amqp://localhost:5672'],
-            [{ params: { heartBeat: 30 } }, 'amqp://localhost:5672?heartBeat=30', 'amqp://localhost:5672?heartBeat=30'],
-            [
-                { params: { heartBeat: 30 }, vhost: '/my_vhost' },
-                'amqp://localhost:5672/%2Fmy_vhost?heartBeat=30',
-                'amqp://localhost:5672/%2Fmy_vhost?heartBeat=30'
-            ],
-            [undefined, 'amqp://localhost:5672', 'amqp://localhost:5672']
+            [{ login: 'keyboard', password: 'cat' }, 'amqp://keyboard:cat@localhost:5672'],
+            [{ retry: { maximum_attempts: 0 } }, 'amqp://localhost:5672'],
+            [{ params: { heartBeat: 30 } }, 'amqp://localhost:5672?heartBeat=30'],
+            [{ params: { heartBeat: 30 }, vhost: '/my_vhost' }, 'amqp://localhost:5672/%2Fmy_vhost?heartBeat=30'],
+            [undefined, 'amqp://localhost:5672']
         ];
 
         options.forEach(option => {
             const instance = new ConnectionManager(<any>option[0]);
             unit.object(instance).isInstanceOf(ConnectionManager);
-            unit.string(instance['uri']).is(option[1]);
-            unit.string(instance['safeUri']).is(option[2]);
+            unit.string(instance.uri).is(option[1]);
         });
     }
 
@@ -138,7 +131,7 @@ export class ConnectionUnitTest {
     @test(' - Test handleDisconnection')
     testhandleDisconnection(done) {
         const instance = new ConnectionManager({ retry: { delay: 100, maximum_attempts: 5 } });
-        instance['connection'] = <any>new RabbitConnectionMock();
+        instance['_connection'] = <any>new RabbitConnectionMock();
         unit.function(instance['_handleDisconnection']);
         instance['_handleDisconnection']();
         Observable.fromEvent(instance, 'error').subscribe(
@@ -151,6 +144,6 @@ export class ConnectionUnitTest {
             },
             err => done(new Error('Should not be here'))
         );
-        instance['connection'].emit('error', new Error('Connection error'));
+        instance['_connection'].emit('error', new Error('Connection error'));
     }
 }

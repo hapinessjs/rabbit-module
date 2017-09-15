@@ -1,5 +1,5 @@
 import { CoreModule, OnExtensionLoad, OnModuleInstantiated, ExtensionWithConfig, Extension } from '@hapiness/core';
-import { InitExtension } from './InitExtension';
+import { RegisterAnnotations } from './register-annotations';
 import { Observable } from 'rxjs';
 
 import { ConnectionManager } from './managers';
@@ -52,12 +52,12 @@ export class RabbitMQExt implements OnExtensionLoad, OnModuleInstantiated {
             connection
                 .connect()
                 .flatMap(() => {
-                    return InitExtension.bootstrap(module, connection);
+                    return RegisterAnnotations.bootstrap(module, connection);
                 })
                 .subscribe(_ => {}, err => errorHandler(err));
         });
 
-        return InitExtension.bootstrap(module, connection);
+        return RegisterAnnotations.bootstrap(module, connection);
     }
 }
 
