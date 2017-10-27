@@ -56,7 +56,7 @@ export class MessageRouter {
         const score = this.classes
             .map(_class => {
                 const meta = _class.data;
-                const checks = [];
+                let checks = [];
 
                 if (
                     extractMetadataByDecorator<QueueDecoratorInterface>(meta.queue, 'Queue').name === message.fields.exchange &&
@@ -67,8 +67,8 @@ export class MessageRouter {
                 } else if (message.fields.routingKey && meta.routingKey && meta.exchange) {
                     checks.push(
                         extractMetadataByDecorator<ExchangeDecoratorInterface>(meta.exchange, 'Exchange').name === message.fields.exchange
+                        && typeof meta.routingKey === 'string' && this._testValue(meta.routingKey, message.fields.routingKey)
                     );
-                    checks.push(typeof meta.routingKey === 'string' && this._testValue(meta.routingKey, message.fields.routingKey));
                 }
 
                 let checkFilter = false;
@@ -78,9 +78,14 @@ export class MessageRouter {
                         checkFilter = !!entries.find(([key, value]) => {
                             return this._testValue(value, _get(message, key.split('.')));
                         });
+
+                        if (checkFilter) {
+                            checks.push(true);
+                        } else {
+                            checks = [];
+                        }
                     }
                 }
-                checks.push(checkFilter);
 
                 return {
                     score: checks.filter(Boolean).length,

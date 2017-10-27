@@ -9,6 +9,7 @@ import {
     GeneratePdf,
     OrderCreatedMessage,
     UserCreatedMessage,
+    UserEditedMessage,
     UserDeletedMessage,
     FallbackMessage,
     PokemonsMessage
@@ -53,13 +54,30 @@ export class MessageRouterUnitTest {
         const orderCreatedMessage = new OrderCreatedMessage();
         const pokemonsMessage = new PokemonsMessage();
         const fallbackMessage = new FallbackMessage();
+        const userEditedMessage = new UserEditedMessage(new MayonaiseService());
 
         this.messageRouter.registerMessage(userDeletedMessage);
+        this.messageRouter.registerMessage(userEditedMessage);
         this.messageRouter.registerMessage(fallbackMessage);
         this.messageRouter.registerMessage(orderCreatedMessage);
         this.messageRouter.registerMessage(generatePdfMessage);
         this.messageRouter.registerMessage(userCreatedMessage);
         this.messageRouter.registerMessage(pokemonsMessage);
+
+        const message_userEdited = generateMessage(
+            { user_id: 4028, action: 'edited' }, { exchange: 'user.exchange', routingKey: 'user' }, false);
+        unit
+            .object(this.messageRouter.findClass(message_userEdited))
+            .isInstanceOf(UserEditedMessage)
+            .is(userEditedMessage);
+
+        const message_userExchangeRoutingKeyWithoutAction = generateMessage(
+            { user_id: 4028 }, { exchange: 'user.exchange', routingKey: 'user' }, false);
+        unit.value(this.messageRouter.findClass(message_userExchangeRoutingKeyWithoutAction)).is(null);
+
+        const message_userExchangeWithoutRoutingKey = generateMessage(
+            { user_id: 4028 }, { exchange: 'user.exchange' }, false);
+        unit.value(this.messageRouter.findClass(message_userExchangeWithoutRoutingKey)).is(null);
 
         const message_userCreated = generateMessage({ user_id: 60936 }, { exchange: 'user.exchange', routingKey: 'user.created' }, false);
         unit
@@ -173,9 +191,9 @@ export class MessageRouterUnitTest {
 
         Observable.forkJoin(pending).subscribe(_ => {
             unit.number(this.messageRouter.getDispatcher['callCount']).is(5);
-            unit.number(this.messageRouter.findClass['callCount']).is(11);
+            unit.number(this.messageRouter.findClass['callCount']).is(14);
             unit.array(this.messageRouter.registerMessage['firstCall'].args).is([userDeletedMessage]);
-            unit.number(this.messageRouter['_testValue']['callCount']).is(34);
+            unit.number(this.messageRouter['_testValue']['callCount']).is(56);
             done();
         });
     }

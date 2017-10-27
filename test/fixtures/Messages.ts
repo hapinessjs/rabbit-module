@@ -8,6 +8,23 @@ import { MessageInterface, RabbitMessage } from '../../src/module/interfaces';
 @Message({
     queue: AnotherQueue,
     exchange: UserExchange,
+    routingKey: 'user',
+    filter: {
+        'content.action': 'edited'
+    }
+})
+export class UserEditedMessage implements MessageInterface {
+    constructor(private _mayo: MayonaiseService) {}
+
+    onMessage(message: RabbitMessage) {
+        this._mayo.eat();
+        return Observable.of({ ack: true });
+    }
+}
+
+@Message({
+    queue: AnotherQueue,
+    exchange: UserExchange,
     routingKey: 'user.created'
 })
 export class UserCreatedMessage implements MessageInterface {
