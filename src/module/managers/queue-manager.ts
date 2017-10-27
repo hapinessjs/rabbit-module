@@ -112,12 +112,16 @@ export class QueueManager {
                         }
                     }).subscribe(
                         _ => this.handleMessageResult(message, _),
-                        err => (typeof options.errorHandler === 'function' ?
-                            options.errorHandler(err, message, this._ch) : errorHandler(err))
+                        err => {
+                            (typeof options.errorHandler === 'function' ?
+                            options.errorHandler(err, message, this._ch) : errorHandler(err));
+                            this._ch.reject(message, false);
+                        }
                     );
                 } catch (err) {
                     (typeof options.errorHandler === 'function' ? options.errorHandler(err, message, this._ch) : errorHandler(err));
                     events.queueManager.emit('consume_message_error', err, message, this._ch);
+                    this._ch.reject(message, false);
                 }
             })
         );

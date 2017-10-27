@@ -25,7 +25,7 @@ export class ChannelManager {
             return Observable.throw(new Error('Create channel before setting prefetch'));
         }
 
-        const count = (isNaN(_count)) ? this._connectionManager.getDefaultPrefetch() : _count;
+        const count = (_count === null || isNaN(_count)) ? this._connectionManager.getDefaultPrefetch() : _count;
         return Observable.fromPromise(this.ch.prefetch(count, global));
     }
 
