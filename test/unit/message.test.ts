@@ -14,7 +14,7 @@ export class MessageUnitTest {
 
     before() {
         this.sendMessage = unit.spy(Message.sendMessage);
-        this.decodeContent = unit.spy(Message.decodeContent);
+        this.decodeContent = unit.spy(Message.decodeJSONContent);
         this.ch = new ChannelMock();
         unit.spy(this.ch, 'publish');
         unit.spy(this.ch, 'sendToQueue');
@@ -70,7 +70,7 @@ export class MessageUnitTest {
                 unit.when('Invalid input', this.decodeContent('hello world'));
             })
             .isInstanceOf(Error)
-            .hasProperty('message', 'Cannot decode message content');
+            .hasProperty('message', 'Cannot decode invalid message');
 
         const message4 = generateMessage({ foo: 'bar' }, {}, false);
         message4.properties.headers.json = false;

@@ -6,3 +6,5 @@ export * from './message';
 export * from './message-router';
 export * from './rabbitmq.extension';
 export * from './rabbitmq.module';
+export * from './interfaces';
+export * from './events';

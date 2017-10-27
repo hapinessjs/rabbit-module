@@ -1,6 +1,7 @@
 import { Observable } from 'rxjs';
 import { extractMetadataByDecorator } from '@hapiness/core/core/metadata';
-import { Type } from '@hapiness/core';
+import { Type, CoreModule } from '@hapiness/core';
+import { errorHandler } from '@hapiness/core/core';
 import { DependencyInjection } from '@hapiness/core/core/di';
 import { Channel as ChannelInterface } from 'amqplib';
 import { ConnectionManager } from './managers';
@@ -8,12 +9,13 @@ import { QueueDecoratorInterface, ExchangeDecoratorInterface, MessageDecoratorIn
 import { QueueManager } from './managers';
 import { ExchangeManager, ExchangeWrapper, QueueWrapper } from './managers';
 import { MessageRouter } from './message-router';
-import { RabbitMessage, MessageResult, MessageInterface } from './interfaces';
-import { errorHandler } from '@hapiness/core/core';
+import { MessageInterface } from './interfaces';
+import { ChannelService } from './services/channel.service';
+
 const debug = require('debug')('hapiness:rabbitmq');
 
 export class RegisterAnnotations {
-    public static bootstrap(module, connection: ConnectionManager) {
+    public static bootstrap(module: CoreModule, connection: ConnectionManager) {
         debug('bootstrap extension');
         return this.buildExchanges(module, connection)
             .toArray()
@@ -24,10 +26,15 @@ export class RegisterAnnotations {
             });
     }
 
+    public static getChannel(module: CoreModule, connection, key): Observable<ChannelInterface> {
+        return DependencyInjection.instantiateComponent(ChannelService, module.di)
+            .switchMap(channelService => channelService.upsert(key).map(channelManager => channelManager.getChannel()));
+    }
+
     public static buildExchanges(module, connection: ConnectionManager): Observable<any> {
         return Observable.of(module)
             .filter(_ => !!_)
-            .flatMap(_ => this.metadataFromDeclarations<ExchangeDecoratorInterface>(_.declarations, 'Exchange'))
+            .flatMap(_ => RegisterAnnotations.metadataFromDeclarations<ExchangeDecoratorInterface>(_.declarations, 'Exchange'))
             .flatMap(_ => DependencyInjection.instantiateComponent(_.token, module.di).map(instance => ({ instance, _ })))
             .flatMap(({ instance, _ }) => {
                 const exchange = new ExchangeManager(connection.defaultChannel, new ExchangeWrapper(instance, _.data));
@@ -39,11 +46,17 @@ export class RegisterAnnotations {
         return (
             Observable.of(module)
                 .filter(_ => !!_)
-                .flatMap(_ => this.metadataFromDeclarations<QueueDecoratorInterface>(_.declarations, 'Queue'))
+                .flatMap(_ => RegisterAnnotations.metadataFromDeclarations<QueueDecoratorInterface>(_.declarations, 'Queue'))
                 .flatMap(_ => DependencyInjection.instantiateComponent(_.token, module.di).map(instance => ({ instance, _ })))
                 // Assert queue
-                .mergeMap(({ instance, _ }) => {
-                    const queue = new QueueManager(connection.defaultChannel, new QueueWrapper(instance, _.data));
+                .mergeMap(({ instance, _ }) =>
+                    _.data.channel ?
+                        RegisterAnnotations
+                            .getChannel(module, connection, _.data.channel.key)
+                            .map(channel => ({ instance, _, channel }))
+                        : Observable.of({ instance, _, channel: connection.defaultChannel }))
+                .mergeMap(({ instance, _, channel }) => {
+                    const queue = new QueueManager(channel, new QueueWrapper(instance, _.data));
                     return Observable.forkJoin(queue.assert(), Observable.of(_));
                 })
                 // Bind queue
@@ -51,12 +64,15 @@ export class RegisterAnnotations {
                     if (Array.isArray(_.data.binds)) {
                         return Observable.forkJoin(
                             _.data.binds.map(bind => {
+                                if (Array.isArray(bind.pattern)) {
+                                    return Observable.forkJoin(bind.pattern.map(pattern => queue.bind(
+                                        extractMetadataByDecorator<ExchangeDecoratorInterface>(bind.exchange, 'Exchange').name, pattern)));
+                                }
+
                                 return queue.bind(
-                                    extractMetadataByDecorator<ExchangeDecoratorInterface>(bind.exchange, 'Exchange').name,
-                                    bind.pattern
+                                    extractMetadataByDecorator<ExchangeDecoratorInterface>(bind.exchange, 'Exchange').name, bind.pattern
                                 );
-                            })
-                        ).map(() => queue);
+                            })).map(() => queue);
                     }
 
                     return Observable.of(queue);
@@ -75,20 +91,11 @@ export class RegisterAnnotations {
 
     static consumeQueue(queue: QueueManager, messageRouter: MessageRouter) {
         debug(`Creating dispatcher for queue ${queue.getName()}`);
-        const messageDispatcher = (ch: ChannelInterface, message: RabbitMessage): Observable<MessageResult> => {
-            return messageRouter.dispatch(ch, message).catch(err => {
-                if (err.code === 'MESSAGE_CLASS_NOT_FOUND' && typeof queue['_queue']['onMessage'] === 'function') {
-                    return queue['_queue']['onMessage'](message, ch);
-                }
-
-                return Observable.throw(err);
-            });
-        };
-        queue.consume(messageDispatcher).subscribe(() => {}, err => errorHandler(err));
+        queue.consume((ch, message) => messageRouter.getDispatcher(ch, message)).subscribe(() => {}, err => errorHandler(err));
     }
 
     public static registerMessages(module, queue: QueueManager, messageRouter: MessageRouter) {
-        return this.metadataFromDeclarations<MessageDecoratorInterface>(module.declarations, 'Message')
+        return RegisterAnnotations.metadataFromDeclarations<MessageDecoratorInterface>(module.declarations, 'Message')
             .filter(_ => {
                 return extractMetadataByDecorator<ExchangeDecoratorInterface>(_.data.queue, 'Queue').name === queue.getName();
             })
@@ -105,7 +112,7 @@ export class RegisterAnnotations {
      * @param  {Type<any>} declarations
      * @returns Array<QueueDecorator>
      */
-    private static metadataFromDeclarations<T>(declarations: Type<any>[], decoratorName) {
+    public static metadataFromDeclarations<T>(declarations: Type<any>[], decoratorName) {
         return Observable.from([].concat(declarations))
             .filter(_ => !!_ && !!extractMetadataByDecorator(_, decoratorName))
             .map(_ => ({

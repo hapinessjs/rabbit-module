@@ -1,9 +1,11 @@
+import * as _get from 'lodash.get';
+import { extractMetadataByDecorator } from '@hapiness/core/core';
 import { Channel as ChannelInterface } from 'amqplib';
 import { Observable } from 'rxjs';
 import { MessageResult, RabbitMessage, MessageInterface } from './interfaces';
-import * as _get from 'lodash.get';
-import { extractMetadataByDecorator } from '@hapiness/core/core';
 import { MessageDecoratorInterface, QueueDecoratorInterface, ExchangeDecoratorInterface } from './decorators';
+
+export type messageResult = Observable<MessageResult>;
 
 export class MessageRouter {
     private classes: Array<{
@@ -20,7 +22,7 @@ export class MessageRouter {
         this.classes.push({ messageClass, data });
     }
 
-    dispatch(ch: ChannelInterface, message: RabbitMessage): Observable<MessageResult> {
+    getDispatcher(ch: ChannelInterface, message: RabbitMessage): Observable<() => messageResult> {
         // If empty message or not an object
         // returns and fake ACK
         if (!message || typeof message !== 'object') {
@@ -30,31 +32,16 @@ export class MessageRouter {
         const messageClass = this.findClass(message);
 
         // No Message class found
+        // Return null, message will be handled by queue onMessage or ignored
         if (!messageClass) {
-            const err = new Error('Message class not found');
-            err['code'] = 'MESSAGE_CLASS_NOT_FOUND';
-            return Observable.throw(err);
+            return Observable.of(null);
         }
-
-        return this.process(ch, message, messageClass);
-    }
-
-    process(ch, message: RabbitMessage, messageClass: MessageInterface): Observable<MessageResult> {
-        // if (!(messageClass instanceof MessageBase)) {
-        //     return Observable.throw(new Error('Invalid Message class'));
-        // }
 
         if (typeof messageClass.onMessage !== 'function') {
             return Observable.throw(new Error(`Message class ${messageClass.constructor.name} should implement onMessage() method`));
         }
 
-        return messageClass.onMessage(message, ch).map(_ => {
-            if (typeof _ !== 'object') {
-                return false;
-            }
-
-            return _;
-        });
+        return Observable.of(() => messageClass.onMessage(message, ch));
     }
 
     private _testValue(value, compareTo) {

@@ -138,6 +138,12 @@ RabbitMQ messages. See [Message Routing](#message-routing) below.-->
         <td><b>-1</b></td>
         <td>Maximum reconnection attempts, <b>-1</b> for <b>Infinity</b></td>
     </tr>
+    <tr>
+        <td>default_prefetch</td>
+        <td><b>number</b></td>
+        <td><b>10</b></td>
+        <td>Default prefetch used when creating new channels</td>
+    </tr>
 </table>
 
 ### Connection & initialization
@@ -343,6 +349,46 @@ This configuration will create:
 to the new message we created.
 * All other messages sent to the exchange with a routingKey matching the pattern ```user.*``` or sent directly to the queue will be consumed by
 the ```onMessage()``` method defined in the queue.
+
+
+#### Integration in your hapiness application
+
+##### Module
+
+You need to include ```RabbitMQModule``` in imports and all your decorated classes in declarations.
+
+```typescript
+@HapinessModule({
+            version: '1.0.0',
+            declarations: [
+                MyQueue,
+                MyExchange,
+                MyMessage,
+                ...
+            ],
+            providers: [
+                MyService
+            ],
+            exports: [],
+            imports: [RabbitMQModule]
+        })
+```
+
+##### Bootstrap
+
+You need to inject the extension in bootstrap using setConfig to instantiate the module.
+
+```typescript
+Hapiness.bootstrap(RabbitMQModuleTest, [
+    RabbitMQExt.setConfig({
+        connection: {
+            host: '....',
+            login: '....',
+            password: '....'
+        }
+    })
+]).catch(err => done(err));
+```
 
 
 #### Using the services
