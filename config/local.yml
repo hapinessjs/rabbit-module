@@ -1,0 +1,10 @@
+rabbitmq:
+  host: rabbitmq-hostname.xx
+  port: 5672
+  vhost: hapiness_rabbitmq
+  login: xxxxx
+  password: yyyyy
+  retry:
+    delay: 200
+    maximum_attempts: -1
+  default_prefetch: 10
