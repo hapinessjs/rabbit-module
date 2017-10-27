@@ -1,9 +1,20 @@
 import { Message } from '../../src/module/decorators';
 import { MayonaiseService } from './Services';
-import { UserExchange, AnotherExchange } from './Exchanges';
+import { UserExchange, AnotherExchange, FooExchange } from './Exchanges';
 import { Observable } from 'rxjs';
 import { AnotherQueue, WorkerQueue } from './Queues';
 import { MessageInterface, RabbitMessage } from '../../src/module/interfaces';
+
+@Message({
+    queue: AnotherQueue,
+    exchange: FooExchange
+})
+export class FooMessage implements MessageInterface {
+
+    onMessage(message: RabbitMessage) {
+        return Observable.of({ ack: true });
+    }
+}
 
 @Message({
     queue: AnotherQueue,
@@ -59,6 +70,21 @@ export class OrderCreatedMessage implements MessageInterface {
     }
 }
 
+@Message({
+    queue: AnotherQueue,
+    exchange: UserExchange,
+    routingKey: 'user.created',
+    filter: {
+        'content.action': 'nope'
+    }
+})
+export class UserCreatedActionNotMatchedMessage implements MessageInterface {
+
+    onMessage(message: RabbitMessage) {
+        return Observable.of({ ack: true });
+    }
+}
+
 /*
     The filter object can be used to match a message
     on custom keys.
@@ -88,8 +114,7 @@ export class GeneratePdf implements MessageInterface {
 }
 
 /*
- If a message arrive in the worker queue and none of the message above
- match this one will be used as a fallback.
+ This is not allowed, use onMessage() method on your @Queue() instead !
 */
 @Message({
     queue: WorkerQueue
@@ -107,3 +132,18 @@ export class FallbackMessage implements MessageInterface {
     }
 })
 export class InvalidMessage {}
+
+@Message({
+    queue: AnotherQueue,
+    exchange: UserExchange,
+    routingKey: 'user.created',
+    filter: {
+        'content.action': 'special'
+    }
+})
+export class UserCreatedActionMessage implements MessageInterface {
+
+    onMessage(message: RabbitMessage) {
+        return Observable.of({ ack: true });
+    }
+}

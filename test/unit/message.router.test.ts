@@ -12,7 +12,10 @@ import {
     UserEditedMessage,
     UserDeletedMessage,
     FallbackMessage,
-    PokemonsMessage
+    PokemonsMessage,
+    FooMessage,
+    UserCreatedActionMessage,
+    UserCreatedActionNotMatchedMessage
 } from '../fixtures/Messages';
 import { MayonaiseService } from '../fixtures/Services';
 import { generateMessage } from '../mocks/Message';
@@ -55,14 +58,45 @@ export class MessageRouterUnitTest {
         const pokemonsMessage = new PokemonsMessage();
         const fallbackMessage = new FallbackMessage();
         const userEditedMessage = new UserEditedMessage(new MayonaiseService());
+        const fooMessage = new FooMessage();
+        const userCreatedActionMessage = new UserCreatedActionMessage();
 
         this.messageRouter.registerMessage(userDeletedMessage);
         this.messageRouter.registerMessage(userEditedMessage);
-        this.messageRouter.registerMessage(fallbackMessage);
         this.messageRouter.registerMessage(orderCreatedMessage);
         this.messageRouter.registerMessage(generatePdfMessage);
         this.messageRouter.registerMessage(userCreatedMessage);
+        this.messageRouter.registerMessage(userCreatedActionMessage);
         this.messageRouter.registerMessage(pokemonsMessage);
+        this.messageRouter.registerMessage(fooMessage);
+        this.messageRouter.registerMessage(new UserCreatedActionNotMatchedMessage());
+
+        unit
+            .exception(_ => {
+                unit.when('Invalid message', this.messageRouter.registerMessage(fallbackMessage));
+            })
+            .isInstanceOf(Error)
+            .hasProperty('message', `Cannot register a message without an exchange or routingKey or
+ filter, use your queue onMessage method instead`);
+
+        unit
+            .exception(_ => {
+                unit.when('Invalid message', this.messageRouter.registerMessage(new (<any>class InvalidMessage {})()));
+            })
+            .isInstanceOf(Error)
+            .hasProperty('message', 'Cannot register a message class without a queue');
+
+        const message_fooMessage = generateMessage({ user_id: 4028, action: 'test' }, { exchange: 'foo.exchange' }, false);
+        unit
+            .object(this.messageRouter.findClass(message_fooMessage))
+            .isInstanceOf(FooMessage)
+            .is(fooMessage);
+
+        const message_fooMessageRoutingKey = generateMessage({ user_id: 5678, action: 'test' },
+            { exchange: 'foo.exchange', routingKey: 'bar' }, false);
+        unit
+            .value(this.messageRouter.findClass(message_fooMessageRoutingKey))
+            .is(null);
 
         const message_userEdited = generateMessage(
             { user_id: 4028, action: 'edited' }, { exchange: 'user.exchange', routingKey: 'user' }, false);
@@ -76,7 +110,7 @@ export class MessageRouterUnitTest {
         unit.value(this.messageRouter.findClass(message_userExchangeRoutingKeyWithoutAction)).is(null);
 
         const message_userExchangeWithoutRoutingKey = generateMessage(
-            { user_id: 4028 }, { exchange: 'user.exchange' }, false);
+            { user_id: 5678 }, { exchange: 'user.exchange' }, false);
         unit.value(this.messageRouter.findClass(message_userExchangeWithoutRoutingKey)).is(null);
 
         const message_userCreated = generateMessage({ user_id: 60936 }, { exchange: 'user.exchange', routingKey: 'user.created' }, false);
@@ -84,6 +118,13 @@ export class MessageRouterUnitTest {
             .object(this.messageRouter.findClass(message_userCreated))
             .isInstanceOf(UserCreatedMessage)
             .is(userCreatedMessage);
+
+            const message_userCreatedAction = generateMessage({ user_id: 60936, action: 'special' },
+                { exchange: 'user.exchange', routingKey: 'user.created' }, false);
+        unit
+            .object(this.messageRouter.findClass(message_userCreatedAction))
+            .isInstanceOf(UserCreatedActionMessage)
+            .is(userCreatedActionMessage);
 
         const message_userDeleted = generateMessage({ user_id: 2341 }, { exchange: 'user.exchange', routingKey: 'user.deleted' }, false);
         unit
@@ -112,9 +153,8 @@ export class MessageRouterUnitTest {
 
         const message_fallback = generateMessage({ reason: 'These are not the droid you are looking for' }, { exchange: 'worker' }, false);
         unit
-            .object(this.messageRouter.findClass(message_fallback))
-            .isInstanceOf(FallbackMessage)
-            .is(fallbackMessage);
+            .value(this.messageRouter.findClass(message_fallback))
+            .is(null);
 
         const message_NotFound = generateMessage(
             { reason: 'These are not the droid you are looking for' },
@@ -135,12 +175,8 @@ export class MessageRouterUnitTest {
 
         const pending = [];
         pending.push(
-            this.messageRouter.getDispatcher(<any>this.ch, message_fallback).switchMap(dispatcher => {
-                unit.function(dispatcher);
-                return dispatcher();
-            })
-            .map(messageResult => {
-                unit.bool(messageResult).isFalse();
+            this.messageRouter.getDispatcher(<any>this.ch, message_fallback).map(dispatcher => {
+                unit.value(dispatcher).is(null);
             })
         );
 
@@ -191,9 +227,9 @@ export class MessageRouterUnitTest {
 
         Observable.forkJoin(pending).subscribe(_ => {
             unit.number(this.messageRouter.getDispatcher['callCount']).is(5);
-            unit.number(this.messageRouter.findClass['callCount']).is(14);
+            unit.number(this.messageRouter.findClass['callCount']).is(17);
             unit.array(this.messageRouter.registerMessage['firstCall'].args).is([userDeletedMessage]);
-            unit.number(this.messageRouter['_testValue']['callCount']).is(56);
+            unit.number(this.messageRouter['_testValue']['callCount']).is(120);
             done();
         });
     }

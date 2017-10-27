@@ -19,6 +19,16 @@ export class MessageRouter {
 
     registerMessage(messageClass: MessageInterface) {
         const data = extractMetadataByDecorator<MessageDecoratorInterface>(messageClass.constructor, 'Message');
+
+        if (!data || !data.queue) {
+            throw new Error('Cannot register a message class without a queue');
+        }
+
+        if (!data.exchange && !data.routingKey && (!data.filter || !Object.keys(data.filter).length)) {
+            throw new Error(`Cannot register a message without an exchange or routingKey or
+ filter, use your queue onMessage method instead`);
+        }
+
         this.classes.push({ messageClass, data });
     }
 
@@ -64,11 +74,14 @@ export class MessageRouter {
                     !meta.routingKey
                 ) {
                     checks.push(true);
-                } else if (message.fields.routingKey && meta.routingKey && meta.exchange) {
+                } else if (meta.routingKey && meta.exchange) {
                     checks.push(
                         extractMetadataByDecorator<ExchangeDecoratorInterface>(meta.exchange, 'Exchange').name === message.fields.exchange
                         && typeof meta.routingKey === 'string' && this._testValue(meta.routingKey, message.fields.routingKey)
                     );
+                } else if (meta.exchange && !message.fields.routingKey) {
+                    checks.push(message.fields.exchange ===
+                        extractMetadataByDecorator<ExchangeDecoratorInterface>(meta.exchange, 'Exchange').name);
                 }
 
                 let checkFilter = false;
