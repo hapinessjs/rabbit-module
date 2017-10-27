@@ -18,6 +18,7 @@ export class ConnectionManager extends EventEmitter {
     private _options: RabbitMQConfigConnection;
     private _uri: string;
     private _connect: typeof connect;
+    private _defaultPrefetch: number;
 
     constructor(config?: RabbitMQConfigConnection) {
         super();
@@ -46,6 +47,22 @@ export class ConnectionManager extends EventEmitter {
             const params = this._options.params ? `?${querystring.stringify(this._options.params)}` : '';
             this._uri = `amqp://${credentials}${host}:${port}${vhost}${params}`;
         }
+
+        this.setDefaultPrefetch(this._options.default_prefetch);
+    }
+
+    setDefaultPrefetch(prefetch: number): ConnectionManager {
+        if (prefetch === null || isNaN(prefetch) || prefetch < 0) {
+            this._defaultPrefetch = 10;
+        } else {
+            this._defaultPrefetch = prefetch;
+        }
+
+        return this;
+    }
+
+    getDefaultPrefetch(): number {
+        return this._defaultPrefetch;
     }
 
     emitEvent(name: string, ...args) {
@@ -92,7 +109,7 @@ export class ConnectionManager extends EventEmitter {
                 this._handleDisconnection();
                 debug('connected, creating default channel ...');
                 this.emitEvent('opened', { connection: con });
-                const channel = new ChannelManager(this._connection);
+                const channel = new ChannelManager(this);
                 return channel.create(this._options.default_prefetch);
             })
             .map(ch => {

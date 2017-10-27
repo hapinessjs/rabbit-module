@@ -1,9 +1,11 @@
+import * as _get from 'lodash.get';
+import { extractMetadataByDecorator } from '@hapiness/core/core';
 import { Channel as ChannelInterface } from 'amqplib';
 import { Observable } from 'rxjs';
 import { MessageResult, RabbitMessage, MessageInterface } from './interfaces';
-import * as _get from 'lodash.get';
-import { extractMetadataByDecorator } from '@hapiness/core/core';
 import { MessageDecoratorInterface, QueueDecoratorInterface, ExchangeDecoratorInterface } from './decorators';
+
+export type messageResult = Observable<MessageResult>;
 
 export class MessageRouter {
     private classes: Array<{
@@ -20,7 +22,7 @@ export class MessageRouter {
         this.classes.push({ messageClass, data });
     }
 
-    getDispatcher(ch: ChannelInterface, message: RabbitMessage): Observable<() => Observable<MessageResult>> {
+    getDispatcher(ch: ChannelInterface, message: RabbitMessage): Observable<() => messageResult> {
         // If empty message or not an object
         // returns and fake ACK
         if (!message || typeof message !== 'object') {

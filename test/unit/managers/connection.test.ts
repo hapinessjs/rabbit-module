@@ -146,4 +146,19 @@ export class ConnectionUnitTest {
         );
         instance['_connection'].emit('error', new Error('Connection error'));
     }
+
+    @test('- Test setDefaultPrefetch')
+    testSetDefaultPrefetch() {
+        const instance = new ConnectionManager();
+        instance.setDefaultPrefetch(<any>null);
+        unit.number(instance.getDefaultPrefetch()).is(10);
+        instance.setDefaultPrefetch(<any>undefined);
+        unit.number(instance.getDefaultPrefetch()).is(10);
+        instance.setDefaultPrefetch(<any>'xaxaxa');
+        unit.number(instance.getDefaultPrefetch()).is(10);
+        instance.setDefaultPrefetch(-876);
+        unit.number(instance.getDefaultPrefetch()).is(10);
+        instance.setDefaultPrefetch(5);
+        unit.number(instance.getDefaultPrefetch()).is(5);
+    }
 }

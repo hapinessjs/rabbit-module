@@ -19,7 +19,6 @@ import { RabbitMQModule } from '../../src/module';
 import { RabbitConnectionService } from '../../src/module/services';
 import { ConnectionManagerMock } from '../mocks/ConnectionManager';
 import { Config } from '@hapiness/config';
-// import { ConnectionManager } from './../../src/managers';
 
 @suite('- Integration test of RabbitMQ Module')
 export class RabbitMQIntegrationTest {
