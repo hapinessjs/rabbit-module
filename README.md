@@ -222,7 +222,7 @@ $ yarn add @hapiness/core @hapiness/rabbitmq rxjs
 ```javascript
 "dependencies": {
     "@hapiness/core": "^1.1.1",
-    "@hapiness/rabbitmq": "^1.0.0",
+    "@hapiness/rabbitmq": "^1.0.1",
     "rxjs": "^5.5.0",
     //...
 }
@@ -453,6 +453,17 @@ To set up your development environment:
 [Back to top](#table-of-contents)
 
 ## Change History
+* v1.1.0 (2017-10-27)
+    * Allow to define queue binds without pattern
+    * Allow to define queue bind pattern as array
+    * Add default prefetch that is used for each channel creation if not specified in create() method first argument
+    * Rename decodeContent to decodeJSONContent and change logic to not throw if content is not JSON, add force argument to try to decode if headers.json boolean is missing
+    * Add force_json_decode option in queue decorator to force JSON decoding of all messages consumed
+    * Rework dispatcher logic (1)
+    * Add channel option for queue to allow using different channel for each queue with a different prefetch
+    * Export a global event object for connection and queueManager events
+    * Update tests
+    * Update documentation
 * v1.0.0 (2017-10-23)
     * Publish all features of the module
     * Tests
