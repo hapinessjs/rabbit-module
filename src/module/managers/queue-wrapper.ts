@@ -23,7 +23,7 @@ export class QueueWrapper {
         }
     }
 
-    public getName() {
+    public getName(): string {
         try {
             return this.getMeta().name;
         } catch (err) {
@@ -36,6 +36,14 @@ export class QueueWrapper {
             return this.getMeta().binds;
         } catch (err) {
             return null;
+        }
+    }
+
+    public getForceJsonDecode(): boolean {
+        try {
+            return Boolean(this.getMeta().force_json_decode);
+        } catch (err) {
+            return false;
         }
     }
 

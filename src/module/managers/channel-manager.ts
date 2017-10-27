@@ -9,12 +9,12 @@ export class ChannelManager {
         this._connection = connection;
     }
 
-    public create(): Observable<ChannelInterface> {
+    public create(prefetch?: number, global?: boolean): Observable<ChannelInterface> {
         const obs = Observable.fromPromise(this._connection.createChannel());
         return obs.map(ch => {
             this.ch = ch;
             return ch;
-        });
+        }).switchMap(ch => prefetch > 0 ? this.prefetch(prefetch, global).map(() => ch) : Observable.of(ch));
     }
 
     public prefetch(count: number, global: boolean = false): Observable<Replies.Empty> {

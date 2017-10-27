@@ -1,4 +1,4 @@
-export interface RabbitMessage {
+export interface RabbitMessage<T = Buffer | any> {
     fields: {
         consumerTag: string;
         deliveryTag: number;
@@ -22,5 +22,5 @@ export interface RabbitMessage {
         appId?: string;
         clusterId?: string;
     };
-    content: Buffer | any;
+    content: T;
 }

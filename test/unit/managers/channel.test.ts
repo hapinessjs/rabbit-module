@@ -7,7 +7,7 @@ import { ChannelMock } from '../../mocks/Channel';
 
 @suite('- Unit Channel')
 export class ChannelUnitTest {
-    @test('- Should test with exchange as options')
+    @test('- Should test instance')
     testCreate(done) {
         const instance = new ChannelManager(<any>new RabbitConnectionMock());
         unit.function(instance.create);
@@ -24,8 +24,20 @@ export class ChannelUnitTest {
             .subscribe(_ => {
                 const ch = instance.getChannel();
                 unit.array(ch.prefetch['firstCall'].args).is([1, true]);
+                unit.object(instance.setChannel(ch)).isInstanceOf(ChannelManager);
                 done();
             });
+    }
+
+    @test('- Test create with prefetch')
+    testCreateWithPrefetch(done) {
+        const instance = new ChannelManager(<any>new RabbitConnectionMock());
+        const spy = unit.spy(instance, 'prefetch');
+        instance.create(2).subscribe(_ => {
+            unit.number(spy.callCount).is(1);
+            unit.number(spy.firstCall.args[0]).is(2);
+            done();
+        });
     }
 
     @test('- Should test prefetch without channel')

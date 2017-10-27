@@ -18,6 +18,7 @@ import { EventsExchange, UserExchange } from '../fixtures/Exchanges';
 import { RabbitMQModule } from '../../src/module';
 import { RabbitConnectionService } from '../../src/module/services';
 import { ConnectionManagerMock } from '../mocks/ConnectionManager';
+import { Config } from '@hapiness/config';
 // import { ConnectionManager } from './../../src/managers';
 
 @suite('- Integration test of RabbitMQ Module')
@@ -60,12 +61,7 @@ export class RabbitMQIntegrationTest {
 
         Hapiness.bootstrap(RabbitMQModuleTest, [
             RabbitMQExt.setConfig({
-                connection: {
-                    host: 'localhost',
-                    vhost: '/my_vhost',
-                    login: 'username',
-                    password: '*********'
-                }
+                connection: Config.get('rabbitmq')
             })
         ]).catch(err => done(err));
     }

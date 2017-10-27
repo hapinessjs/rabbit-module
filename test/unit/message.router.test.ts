@@ -11,22 +11,22 @@ import {
     UserCreatedMessage,
     UserDeletedMessage,
     FallbackMessage,
-    PokemonsMessage,
-    InvalidMessage
+    PokemonsMessage
 } from '../fixtures/Messages';
 import { MayonaiseService } from '../fixtures/Services';
 import { generateMessage } from '../mocks/Message';
 
 @suite('- Unit MessageRouter')
 export class MessageRouterUnitTest {
+    private spyFindClass: any;
     private ch: ChannelMock;
     private messageRouter: MessageRouter;
 
     before() {
         this.messageRouter = new MessageRouter();
         this.ch = new ChannelMock();
-        unit.spy(this.messageRouter, 'dispatch');
-        unit.spy(this.messageRouter, 'findClass');
+        unit.spy(this.messageRouter, 'getDispatcher');
+        this.spyFindClass = unit.spy(this.messageRouter, 'findClass');
         unit.spy(this.messageRouter, 'registerMessage');
         unit.spy(this.messageRouter, '_testValue');
     }
@@ -41,7 +41,7 @@ export class MessageRouterUnitTest {
         unit.object(this.messageRouter).isInstanceOf(MessageRouter);
         unit.function(this.messageRouter.registerMessage);
         unit.function(this.messageRouter.findClass);
-        unit.function(this.messageRouter.dispatch);
+        unit.function(this.messageRouter.getDispatcher);
         unit.function(this.messageRouter['_testValue']);
     }
 
@@ -117,20 +117,28 @@ export class MessageRouterUnitTest {
 
         const pending = [];
         pending.push(
-            this.messageRouter.dispatch(<any>this.ch, message_fallback).map(messageResult => {
+            this.messageRouter.getDispatcher(<any>this.ch, message_fallback).switchMap(dispatcher => {
+                unit.function(dispatcher);
+                return dispatcher();
+            })
+            .map(messageResult => {
                 unit.bool(messageResult).isFalse();
             })
         );
 
         pending.push(
-            this.messageRouter.dispatch(<any>this.ch, message_orderCreated).map(messageResult => {
+            this.messageRouter.getDispatcher(<any>this.ch, message_orderCreated).switchMap(dispatcher => {
+                unit.function(dispatcher);
+                return dispatcher();
+            })
+            .map(messageResult => {
                 unit.object(messageResult).is({ reject: true });
             })
         );
 
         pending.push(
             this.messageRouter
-                .dispatch(<any>this.ch, <any>null)
+                .getDispatcher(<any>this.ch, <any>null)
                 .catch(err => {
                     unit
                         .object(err)
@@ -144,13 +152,17 @@ export class MessageRouterUnitTest {
         );
 
         pending.push(
-            this.messageRouter.dispatch(<any>this.ch, message_generatePdf).map(messageResult => {
+            this.messageRouter.getDispatcher(<any>this.ch, message_generatePdf).switchMap(dispatcher => {
+                unit.function(dispatcher);
+                return dispatcher();
+            })
+            .map(messageResult => {
                 unit.object(messageResult).is({ reject: true, requeue: true });
             })
         );
 
         pending.push(
-            this.messageRouter.dispatch(<any>this.ch, message_NotFound).catch(err => {
+            this.messageRouter.getDispatcher(<any>this.ch, message_NotFound).catch(err => {
                 unit
                     .object(err)
                     .isInstanceOf(Error)
@@ -160,7 +172,7 @@ export class MessageRouterUnitTest {
         );
 
         Observable.forkJoin(pending).subscribe(_ => {
-            unit.number(this.messageRouter.dispatch['callCount']).is(5);
+            unit.number(this.messageRouter.getDispatcher['callCount']).is(5);
             unit.number(this.messageRouter.findClass['callCount']).is(11);
             unit.array(this.messageRouter.registerMessage['firstCall'].args).is([userDeletedMessage]);
             unit.number(this.messageRouter['_testValue']['callCount']).is(34);
@@ -170,18 +182,21 @@ export class MessageRouterUnitTest {
 
     @test('- Should throw when invalid message class is provided to process() method')
     testProcessInvalidMessageClass(done) {
-        const obs = this.messageRouter.process(
+        this.spyFindClass.restore();
+        const stub = unit.stub(this.messageRouter, 'findClass');
+        stub.returns({});
+        const obs = this.messageRouter.getDispatcher(
             <any>this.ch,
             generateMessage({ error: 'invalid_message_class' }),
-            <any>new InvalidMessage()
         );
         obs.subscribe(
-            _ => done(new Error('Should throw')),
+            _ => done(new Error('Cannot be here')),
             err => {
                 unit
                     .object(err)
                     .isInstanceOf(Error)
-                    .hasProperty('message', 'Message class InvalidMessage should implement onMessage() method');
+                    .hasProperty('message', 'Message class Object should implement onMessage() method');
+                stub.restore();
                 done();
             }
         );

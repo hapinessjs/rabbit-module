@@ -2,8 +2,9 @@ import { Observable } from 'rxjs';
 import * as querystring from 'querystring';
 import { ChannelManager } from './channel-manager';
 import { Channel as ChannelInterface, Connection, connect } from 'amqplib';
-import * as EventEmitter from 'events';
 import { RabbitMQConfigConnection } from '../interfaces';
+import { events } from '../events';
+import { EventEmitter } from 'events';
 
 export const REGEX_URI = /^amqp:\/\/([^@\n]+:[^@\n]+@)?(\w+)(:?)(\d{0,6})(\/[\w%]+)?(\?(?:&?[^=&\s]*=[^=&\s]*)+)?$/;
 
@@ -47,6 +48,11 @@ export class ConnectionManager extends EventEmitter {
         }
     }
 
+    emitEvent(name: string, ...args) {
+        this.emit(name, ...args);
+        events.connection.emit(name, ...args);
+    }
+
     isConnecting(): boolean {
         return this._isConnecting;
     }
@@ -78,24 +84,24 @@ export class ConnectionManager extends EventEmitter {
 
         debug('Connecting', this._uri);
 
-        this.emit('connecting');
+        this.emitEvent('connecting');
         const obs = this.openConnection();
         return obs
             .flatMap(con => {
                 this._connection = con;
                 this._handleDisconnection();
                 debug('connected, creating default channel ...');
-                this.emit('opened', { connection: con });
+                this.emitEvent('opened', { connection: con });
                 const channel = new ChannelManager(this._connection);
-                return channel.create();
+                return channel.create(this._options.default_prefetch);
             })
             .map(ch => {
                 this._isConnected = true;
                 this._isConnecting = false;
                 this._defaultChannel = ch;
                 debug('... channel created, RabbitMQ ready');
-                this.emit('connected');
-                this.emit('ready');
+                this.emitEvent('connected');
+                this.emitEvent('ready');
                 return this._connection;
             });
     }
@@ -104,7 +110,7 @@ export class ConnectionManager extends EventEmitter {
         this._connection.on('error', err => {
             this._isConnected = false;
             this._isConnecting = false;
-            this.emit('error', err);
+            this.emitEvent('error', err);
         });
     }
 

@@ -38,7 +38,7 @@ export class InitExtensionUnitTest {
     }
 
     @test('- Should test consumeQueue when there is no message found')
-    testConsumeQueue() {
+    testConsumeQueue(done) {
         unit.spy(this.queue['_ch'], 'consume');
         unit.function(RegisterAnnotations.consumeQueue);
         RegisterAnnotations.consumeQueue(this.queue, this.messageRouter);
@@ -49,6 +49,7 @@ export class InitExtensionUnitTest {
         const message = generateMessage({ foo: 'bar' }, { exchange: 'user.queue' });
         this.queue['_ch']['consume']['firstCall']['args'][1](message);
         unit.number(this.userQueue.onMessage.callCount).is(1);
+        done();
     }
 
     @test('- Should test consumeQueue when queue.consume() returns error')
@@ -58,12 +59,12 @@ export class InitExtensionUnitTest {
         RegisterAnnotations.consumeQueue(this.queue, this.messageRouter);
     }
 
-    @test('- Should test consomeQueue when there is an error other than message not found')
+    @test('- Should test consumeQueue when there is an error other than message not found')
     testConsumeQueueError() {
         unit.spy(this.queue['_ch'], 'consume');
         unit.function(RegisterAnnotations.consumeQueue);
         RegisterAnnotations.consumeQueue(this.queue, this.messageRouter);
-        const stub = unit.stub(this.messageRouter, 'dispatch');
+        const stub = unit.stub(this.messageRouter, 'getDispatcher');
         stub.returns(Observable.throw(new Error('Oops, something terrible happened!')));
         const message = generateMessage({ foo: 'bar' }, { exchange: 'user.queue' });
         const obs: Subscription = this.queue['_ch']['consume']['firstCall']['args'][1](message);
