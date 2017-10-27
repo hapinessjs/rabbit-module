@@ -66,16 +66,13 @@ export class RegisterAnnotations {
                             _.data.binds.map(bind => {
                                 if (Array.isArray(bind.pattern)) {
                                     return Observable.forkJoin(bind.pattern.map(pattern => queue.bind(
-                                        extractMetadataByDecorator<ExchangeDecoratorInterface>(bind.exchange, 'Exchange').name,
-                                    pattern)));
+                                        extractMetadataByDecorator<ExchangeDecoratorInterface>(bind.exchange, 'Exchange').name, pattern)));
                                 }
 
                                 return queue.bind(
-                                    extractMetadataByDecorator<ExchangeDecoratorInterface>(bind.exchange, 'Exchange').name,
-                                    String(bind.pattern)
+                                    extractMetadataByDecorator<ExchangeDecoratorInterface>(bind.exchange, 'Exchange').name, bind.pattern
                                 );
                             })).map(() => queue);
-                        // )).map(() => queue);
                     }
 
                     return Observable.of(queue);
