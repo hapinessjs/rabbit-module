@@ -1,5 +1,4 @@
 import { CoreModule, OnExtensionLoad, OnModuleInstantiated, ExtensionWithConfig, Extension } from '@hapiness/core';
-import { RegisterAnnotations } from './register-annotations';
 import { Observable } from 'rxjs';
 
 import { ConnectionManager } from './managers';
@@ -62,3 +61,5 @@ export class RabbitMQExt implements OnExtensionLoad, OnModuleInstantiated {
 }
 
 RabbitMQExt.ConnectionManager = ConnectionManager;
+
+import { RegisterAnnotations } from './register-annotations';

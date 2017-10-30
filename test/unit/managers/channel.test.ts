@@ -2,14 +2,14 @@ import { test, suite } from 'mocha-typescript';
 import * as unit from 'unit.js';
 
 import { ChannelManager } from '../../../src/module/managers';
-import { RabbitConnectionMock } from '../../mocks/RabbitConnection';
+import { ConnectionManagerMock } from '../../mocks/ConnectionManager';
 import { ChannelMock } from '../../mocks/Channel';
 
 @suite('- Unit Channel')
 export class ChannelUnitTest {
-    @test('- Should test with exchange as options')
+    @test('- Should test instance')
     testCreate(done) {
-        const instance = new ChannelManager(<any>new RabbitConnectionMock());
+        const instance = new ChannelManager(<any>new ConnectionManagerMock());
         unit.function(instance.create);
         unit.function(instance.prefetch);
         unit.function(instance.getChannel);
@@ -24,13 +24,25 @@ export class ChannelUnitTest {
             .subscribe(_ => {
                 const ch = instance.getChannel();
                 unit.array(ch.prefetch['firstCall'].args).is([1, true]);
+                unit.object(instance.setChannel(ch)).isInstanceOf(ChannelManager);
                 done();
             });
     }
 
+    @test('- Test create with prefetch')
+    testCreateWithPrefetch(done) {
+        const instance = new ChannelManager(<any>new ConnectionManagerMock());
+        const spy = unit.spy(instance, 'prefetch');
+        instance.create(2).subscribe(_ => {
+            unit.number(spy.callCount).is(1);
+            unit.number(spy.firstCall.args[0]).is(2);
+            done();
+        });
+    }
+
     @test('- Should test prefetch without channel')
     testPrefetch(done) {
-        const instance = new ChannelManager(<any>new RabbitConnectionMock());
+        const instance = new ChannelManager(<any>new ConnectionManagerMock());
         const obs = instance.prefetch(10);
         obs.subscribe(
             _ => {

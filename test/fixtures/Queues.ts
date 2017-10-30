@@ -8,10 +8,21 @@ import { Observable } from 'rxjs';
     options: {
         durable: true
     },
+    channel: {
+        key: 'custom-channel',
+        prefetch: 1
+    },
     binds: [
         {
             exchange: UserExchange,
             pattern: 'user.edited'
+        },
+        {
+            exchange: UserExchange,
+            pattern: ['user.created', 'user.deleted']
+        },
+        {
+            exchange: UserExchange
         }
     ]
 })

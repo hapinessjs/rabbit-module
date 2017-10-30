@@ -4,4 +4,4 @@ export interface MessageResultObject {
     requeue?: boolean;
 }
 
-export type MessageResult = MessageResultObject | Boolean;
+export type MessageResult = MessageResultObject | boolean;

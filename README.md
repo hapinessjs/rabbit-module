@@ -138,6 +138,12 @@ RabbitMQ messages. See [Message Routing](#message-routing) below.-->
         <td><b>-1</b></td>
         <td>Maximum reconnection attempts, <b>-1</b> for <b>Infinity</b></td>
     </tr>
+    <tr>
+        <td>default_prefetch</td>
+        <td><b>number</b></td>
+        <td><b>10</b></td>
+        <td>Default prefetch used when creating new channels</td>
+    </tr>
 </table>
 
 ### Connection & initialization
@@ -216,7 +222,7 @@ $ yarn add @hapiness/core @hapiness/rabbitmq rxjs
 ```javascript
 "dependencies": {
     "@hapiness/core": "^1.1.1",
-    "@hapiness/rabbitmq": "^1.0.0",
+    "@hapiness/rabbitmq": "^1.0.1",
     "rxjs": "^5.5.0",
     //...
 }
@@ -345,6 +351,46 @@ to the new message we created.
 the ```onMessage()``` method defined in the queue.
 
 
+#### Integration in your hapiness application
+
+##### Module
+
+You need to include ```RabbitMQModule``` in imports and all your decorated classes in declarations.
+
+```typescript
+@HapinessModule({
+            version: '1.0.0',
+            declarations: [
+                MyQueue,
+                MyExchange,
+                MyMessage,
+                ...
+            ],
+            providers: [
+                MyService
+            ],
+            exports: [],
+            imports: [RabbitMQModule]
+        })
+```
+
+##### Bootstrap
+
+You need to inject the extension in bootstrap using setConfig to instantiate the module.
+
+```typescript
+Hapiness.bootstrap(RabbitMQModuleTest, [
+    RabbitMQExt.setConfig({
+        connection: {
+            host: '....',
+            login: '....',
+            password: '....'
+        }
+    })
+]).catch(err => done(err));
+```
+
+
 #### Using the services
 
 Once the extension is loaded and ```RabbitMQ``` is connected you can use the services in your app.
@@ -407,6 +453,20 @@ To set up your development environment:
 [Back to top](#table-of-contents)
 
 ## Change History
+* v1.1.0 (2017-10-27)
+    * Allow to define queue binds without pattern
+    * Allow to define queue bind pattern as array
+    * Add default prefetch that is used for each channel creation if not specified in create() method first argument
+    * Rename decodeContent to decodeJSONContent and change logic to not throw if content is not JSON, add force argument to try to decode if headers.json boolean is missing
+    * Add force_json_decode option in queue decorator to force JSON decoding of all messages consumed
+    * Rework dispatcher logic (1)
+    * Add channel option for queue to allow using different channel for each queue with a different prefetch
+    * Export a global event object for connection and queueManager events
+    * Correct logic behind message routing
+    * Add checks and throw if messages do not have all required properties
+    * If the message has a filter property and it does not match discard the class from the selection
+    * Update tests
+    * Update documentation
 * v1.0.0 (2017-10-23)
     * Publish all features of the module
     * Tests

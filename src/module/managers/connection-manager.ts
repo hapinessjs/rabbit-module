@@ -2,8 +2,9 @@ import { Observable } from 'rxjs';
 import * as querystring from 'querystring';
 import { ChannelManager } from './channel-manager';
 import { Channel as ChannelInterface, Connection, connect } from 'amqplib';
-import * as EventEmitter from 'events';
 import { RabbitMQConfigConnection } from '../interfaces';
+import { events } from '../events';
+import { EventEmitter } from 'events';
 
 export const REGEX_URI = /^amqp:\/\/([^@\n]+:[^@\n]+@)?(\w+)(:?)(\d{0,6})(\/[\w%]+)?(\?(?:&?[^=&\s]*=[^=&\s]*)+)?$/;
 
@@ -17,6 +18,7 @@ export class ConnectionManager extends EventEmitter {
     private _options: RabbitMQConfigConnection;
     private _uri: string;
     private _connect: typeof connect;
+    private _defaultPrefetch: number;
 
     constructor(config?: RabbitMQConfigConnection) {
         super();
@@ -45,6 +47,27 @@ export class ConnectionManager extends EventEmitter {
             const params = this._options.params ? `?${querystring.stringify(this._options.params)}` : '';
             this._uri = `amqp://${credentials}${host}:${port}${vhost}${params}`;
         }
+
+        this.setDefaultPrefetch(this._options.default_prefetch);
+    }
+
+    setDefaultPrefetch(prefetch: number): ConnectionManager {
+        if (prefetch === null || isNaN(prefetch) || prefetch < 0) {
+            this._defaultPrefetch = 10;
+        } else {
+            this._defaultPrefetch = prefetch;
+        }
+
+        return this;
+    }
+
+    getDefaultPrefetch(): number {
+        return this._defaultPrefetch;
+    }
+
+    emitEvent(name: string, ...args) {
+        this.emit(name, ...args);
+        events.connection.emit(name, ...args);
     }
 
     isConnecting(): boolean {
@@ -78,24 +101,24 @@ export class ConnectionManager extends EventEmitter {
 
         debug('Connecting', this._uri);
 
-        this.emit('connecting');
+        this.emitEvent('connecting');
         const obs = this.openConnection();
         return obs
             .flatMap(con => {
                 this._connection = con;
                 this._handleDisconnection();
                 debug('connected, creating default channel ...');
-                this.emit('opened', { connection: con });
-                const channel = new ChannelManager(this._connection);
-                return channel.create();
+                this.emitEvent('opened', { connection: con });
+                const channel = new ChannelManager(this);
+                return channel.create(this._options.default_prefetch);
             })
             .map(ch => {
                 this._isConnected = true;
                 this._isConnecting = false;
                 this._defaultChannel = ch;
                 debug('... channel created, RabbitMQ ready');
-                this.emit('connected');
-                this.emit('ready');
+                this.emitEvent('connected');
+                this.emitEvent('ready');
                 return this._connection;
             });
     }
@@ -104,7 +127,7 @@ export class ConnectionManager extends EventEmitter {
         this._connection.on('error', err => {
             this._isConnected = false;
             this._isConnecting = false;
-            this.emit('error', err);
+            this.emitEvent('error', err);
         });
     }
 

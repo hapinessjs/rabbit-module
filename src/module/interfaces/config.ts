@@ -10,6 +10,7 @@ export interface RabbitMQConfigConnection {
         maximum_attempts: number;
         delay: number;
     };
+    default_prefetch?: number;
 }
 
 export interface RabbitMQConfig {

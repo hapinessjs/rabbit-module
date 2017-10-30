@@ -9,7 +9,6 @@ import {
     UserDeletedMessage,
     GeneratePdf,
     OrderCreatedMessage,
-    FallbackMessage,
     PokemonsMessage
 } from '../fixtures/Messages';
 import { MayonaiseService } from '../fixtures/Services';
@@ -18,7 +17,7 @@ import { EventsExchange, UserExchange } from '../fixtures/Exchanges';
 import { RabbitMQModule } from '../../src/module';
 import { RabbitConnectionService } from '../../src/module/services';
 import { ConnectionManagerMock } from '../mocks/ConnectionManager';
-// import { ConnectionManager } from './../../src/managers';
+import { Config } from '@hapiness/config';
 
 @suite('- Integration test of RabbitMQ Module')
 export class RabbitMQIntegrationTest {
@@ -31,7 +30,6 @@ export class RabbitMQIntegrationTest {
                 UserDeletedMessage,
                 GeneratePdf,
                 OrderCreatedMessage,
-                FallbackMessage,
                 PokemonsMessage,
                 UserExchange,
                 EventsExchange,
@@ -60,12 +58,7 @@ export class RabbitMQIntegrationTest {
 
         Hapiness.bootstrap(RabbitMQModuleTest, [
             RabbitMQExt.setConfig({
-                connection: {
-                    host: 'localhost',
-                    vhost: '/my_vhost',
-                    login: 'username',
-                    password: '*********'
-                }
+                connection: Config.get('rabbitmq')
             })
         ]).catch(err => done(err));
     }

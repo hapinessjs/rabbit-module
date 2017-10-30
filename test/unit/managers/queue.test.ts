@@ -35,6 +35,8 @@ export class QueueServiceUnitTest {
         unit.spy(this.ch, 'bindQueue');
         unit.spy(this.ch, 'checkQueue');
         unit.spy(this.ch, 'consume');
+        unit.spy(this.ch, 'reject');
+        unit.spy(this.ch, 'ack');
 
         this.userQueue = new UserQueue();
         unit.spy(this.userQueue, 'onAsserted');
@@ -105,9 +107,12 @@ export class QueueServiceUnitTest {
                 return instance.bind('another.exchange', 'baz');
             })
             .subscribe(_ => {
-                unit.number(this.ch.bindQueue['callCount']).is(2);
+                unit.number(this.ch.bindQueue['callCount']).is(5);
                 unit.array(this.ch.bindQueue['firstCall'].args).is(['user.queue', 'user.exchange', 'user.edited']);
-                unit.array(this.ch.bindQueue['secondCall'].args).is(['user.queue', 'another.exchange', 'baz']);
+                unit.array(this.ch.bindQueue['secondCall'].args).is(['user.queue', 'user.exchange', 'user.created']);
+                unit.array(this.ch.bindQueue['thirdCall'].args).is(['user.queue', 'user.exchange', 'user.deleted']);
+                unit.array(this.ch.bindQueue.getCalls()[3].args).is(['user.queue', 'user.exchange', '']);
+                unit.array(this.ch.bindQueue.getCalls()[4].args).is(['user.queue', 'another.exchange', 'baz']);
                 done();
             });
     }
@@ -199,6 +204,31 @@ export class QueueServiceUnitTest {
             });
     }
 
+    @test('- Should test consuming with default errorHandler and decodeMessageContent to non bool value')
+    testConsumeDefaultErrorHandlerDecodeNonBool(done) {
+        const dispatcher = unit.stub();
+        const err = new Error('Cannot read the message');
+        dispatcher.returns(Observable.throw(err));
+        const instance = new QueueManager(<any>this.ch, this.userQueueWrapper);
+        unit.value(instance.getName()).is('user.queue');
+        const obs = instance.assert();
+        obs
+            .flatMap(_ => {
+                unit.bool(instance.isAsserted()).isTrue();
+                return instance.consume(dispatcher, { decodeMessageContent: <any>'' });
+            })
+            .subscribe(_ => {
+                unit.bool(this.ch.consume['calledOnce']).isTrue();
+                unit.string(this.ch.consume['firstCall'].args[0]).is(instance.getName());
+                unit.function(this.ch.consume['firstCall'].args[1]);
+
+                const message1 = generateMessage({ hello: 'world', result: { ack: true } }, { exchange: instance.getName() });
+                this.ch.sendMessage(message1);
+                unit.number(dispatcher.callCount).is(1);
+                done();
+            });
+    }
+
     @test('- Should test consuming with dispatcher func')
     testConsumeDispatcher(done) {
         const instance = new QueueManager(<any>this.ch, this.anotherQueueWrapper);
@@ -244,12 +274,132 @@ export class QueueServiceUnitTest {
             unit.bool(instance.isAsserted()).isTrue();
             instance.consume();
             const message1 = generateMessage({ hello: 'world', result: { ack: true } }, { exchange: instance.getName() });
-            unit
-                .exception(() => {
-                    unit.when('No consuming possible', this.ch.sendMessage(message1));
-                })
-                .isInstanceOf(Error)
-                .hasProperty('message', `Specifiy a dispatcher or onMessage method for your queue`);
+            this.ch.sendMessage(message1);
+            done();
+        });
+    }
+
+    @test('- Should test handleMessageResult: false')
+    testHandleMessageResultFalse(done) {
+        const instance = new QueueManager(<any>this.ch, this.anotherQueueWrapper);
+        const spy = unit.spy(instance, 'handleMessageResult');
+        unit.value(instance.getName()).is('another.queue');
+        const dispatcher = Observable.of(() => Observable.of(false));
+
+        instance.assert().subscribe(_ => {
+            unit.bool(instance.isAsserted()).isTrue();
+            instance.consume((ch, message) => dispatcher);
+            const message1 = generateMessage(null, { exchange: instance.getName() });
+            this.ch.sendMessage(message1);
+
+            dispatcher.subscribe(r => {
+                unit.number(spy.callCount).is(1);
+                unit.bool(spy.firstCall.args[1]).isFalse();
+                unit.number(instance['_ch']['ack']['callCount']).is(0);
+                unit.number(instance['_ch']['reject']['callCount']).is(0);
+                done();
+            });
+        });
+    }
+
+    @test('- Should test handleMessageResult: reject')
+    testHandleMessageResultReject(done) {
+        const instance = new QueueManager(<any>this.ch, this.anotherQueueWrapper);
+        const spy = unit.spy(instance, 'handleMessageResult');
+        unit.value(instance.getName()).is('another.queue');
+        const dispatcher = Observable.of(() => Observable.of({ reject: true }));
+
+        instance.assert().subscribe(_ => {
+            unit.bool(instance.isAsserted()).isTrue();
+            instance.consume((ch, message) => dispatcher);
+            const message1 = generateMessage(null, { exchange: instance.getName() });
+            this.ch.sendMessage(message1);
+
+            dispatcher.subscribe(r => {
+                unit.number(spy.callCount).is(1);
+                unit.object(spy.firstCall.args[1]).is({ reject: true });
+                unit.number(instance['_ch']['reject']['callCount']).is(1);
+                done();
+            });
+        });
+    }
+
+    @test('- Should test handleMessageResult: malformed object')
+    testHandleMessageResultMalformed(done) {
+        const instance = new QueueManager(<any>this.ch, this.anotherQueueWrapper);
+        const spy = unit.spy(instance, 'handleMessageResult');
+        unit.value(instance.getName()).is('another.queue');
+        const dispatcher = Observable.of(() => Observable.of(<any>{ foo: 'bar' }));
+
+        instance.assert().subscribe(_ => {
+            unit.bool(instance.isAsserted()).isTrue();
+            instance.consume((ch, message) => dispatcher);
+            const message1 = generateMessage(null, { exchange: instance.getName() });
+            this.ch.sendMessage(message1);
+
+            dispatcher.subscribe(r => {
+                unit.number(spy.callCount).is(1);
+                unit.object(spy.firstCall.args[1]).is({ foo: 'bar' });
+                unit.number(instance['_ch']['ack']['callCount']).is(1);
+                done();
+            });
+        });
+    }
+
+    @test('- Should test handleMessageResult: null')
+    testHandleMessageResultNull(done) {
+        const instance = new QueueManager(<any>this.ch, this.anotherQueueWrapper);
+        const spy = unit.spy(instance, 'handleMessageResult');
+        unit.value(instance.getName()).is('another.queue');
+        const dispatcher = Observable.of(() => Observable.of(null));
+
+        instance.assert().subscribe(_ => {
+            unit.bool(instance.isAsserted()).isTrue();
+            instance.consume((ch, message) => dispatcher);
+            const message1 = generateMessage(null, { exchange: instance.getName() });
+            this.ch.sendMessage(message1);
+
+            dispatcher.subscribe(r => {
+                unit.number(spy.callCount).is(1);
+                unit.value(spy.firstCall.args[1]).is(null);
+                unit.number(instance['_ch']['ack']['callCount']).is(1);
+                done();
+            });
+        });
+    }
+
+    @test('- Should test consuming invalid JSON in a message')
+    testInvalidJSON(done) {
+        const instance = new QueueManager(<any>this.ch, this.anotherQueueWrapper);
+        unit.value(instance.getName()).is('another.queue');
+        const obs = instance.assert();
+
+        obs.subscribe(_ => {
+            unit.bool(instance.isAsserted()).isTrue();
+            const _errorHandler = unit.spy();
+            instance.consume(null, { errorHandler: _errorHandler, force_json_decode: true });
+            const message1 = generateMessage(null, { exchange: instance.getName() });
+            message1.content = Buffer.from('xaxa');
+            this.ch.sendMessage(message1);
+            unit.number(_errorHandler.callCount).is(1);
+            unit.object(_errorHandler.firstCall.args[0]).isInstanceOf(Error).hasProperty('message', 'Cannot parse JSON message');
+            done();
+        });
+    }
+
+    @test('- Should test consuming invalid JSON in a message (2)')
+    testInvalidJSON2(done) {
+        const instance = new QueueManager(<any>this.ch, this.anotherQueueWrapper);
+        unit.value(instance.getName()).is('another.queue');
+        const obs = instance.assert();
+
+
+        obs.subscribe(_ => {
+            unit.bool(instance.isAsserted()).isTrue();
+            instance.consume(null, { force_json_decode: true });
+            const message1 = generateMessage(null, { exchange: instance.getName() });
+            message1.content = Buffer.from('xaxa');
+            this.ch.sendMessage(message1);
             done();
         });
     }
@@ -280,5 +430,6 @@ export class QueueServiceUnitTest {
         unit.value(wrapper.getName()).is(null);
         unit.value(wrapper.getBinds()).is(null);
         unit.value(wrapper.getAssertOptions()).is(null);
+        unit.value(wrapper.getForceJsonDecode()).is(false);
     }
 }

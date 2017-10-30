@@ -1,9 +1,11 @@
+import * as _get from 'lodash.get';
+import { extractMetadataByDecorator } from '@hapiness/core/core';
 import { Channel as ChannelInterface } from 'amqplib';
 import { Observable } from 'rxjs';
 import { MessageResult, RabbitMessage, MessageInterface } from './interfaces';
-import * as _get from 'lodash.get';
-import { extractMetadataByDecorator } from '@hapiness/core/core';
 import { MessageDecoratorInterface, QueueDecoratorInterface, ExchangeDecoratorInterface } from './decorators';
+
+export type messageResult = Observable<MessageResult>;
 
 export class MessageRouter {
     private classes: Array<{
@@ -17,10 +19,20 @@ export class MessageRouter {
 
     registerMessage(messageClass: MessageInterface) {
         const data = extractMetadataByDecorator<MessageDecoratorInterface>(messageClass.constructor, 'Message');
+
+        if (!data || !data.queue) {
+            throw new Error('Cannot register a message class without a queue');
+        }
+
+        if (!data.exchange && !data.routingKey && (!data.filter || !Object.keys(data.filter).length)) {
+            throw new Error(`Cannot register a message without an exchange or routingKey or
+ filter, use your queue onMessage method instead`);
+        }
+
         this.classes.push({ messageClass, data });
     }
 
-    dispatch(ch: ChannelInterface, message: RabbitMessage): Observable<MessageResult> {
+    getDispatcher(ch: ChannelInterface, message: RabbitMessage): Observable<() => messageResult> {
         // If empty message or not an object
         // returns and fake ACK
         if (!message || typeof message !== 'object') {
@@ -30,31 +42,16 @@ export class MessageRouter {
         const messageClass = this.findClass(message);
 
         // No Message class found
+        // Return null, message will be handled by queue onMessage or ignored
         if (!messageClass) {
-            const err = new Error('Message class not found');
-            err['code'] = 'MESSAGE_CLASS_NOT_FOUND';
-            return Observable.throw(err);
+            return Observable.of(null);
         }
-
-        return this.process(ch, message, messageClass);
-    }
-
-    process(ch, message: RabbitMessage, messageClass: MessageInterface): Observable<MessageResult> {
-        // if (!(messageClass instanceof MessageBase)) {
-        //     return Observable.throw(new Error('Invalid Message class'));
-        // }
 
         if (typeof messageClass.onMessage !== 'function') {
             return Observable.throw(new Error(`Message class ${messageClass.constructor.name} should implement onMessage() method`));
         }
 
-        return messageClass.onMessage(message, ch).map(_ => {
-            if (typeof _ !== 'object') {
-                return false;
-            }
-
-            return _;
-        });
+        return Observable.of(() => messageClass.onMessage(message, ch));
     }
 
     private _testValue(value, compareTo) {
@@ -69,7 +66,7 @@ export class MessageRouter {
         const score = this.classes
             .map(_class => {
                 const meta = _class.data;
-                const checks = [];
+                let checks = [];
 
                 if (
                     extractMetadataByDecorator<QueueDecoratorInterface>(meta.queue, 'Queue').name === message.fields.exchange &&
@@ -77,11 +74,14 @@ export class MessageRouter {
                     !meta.routingKey
                 ) {
                     checks.push(true);
-                } else if (message.fields.routingKey && meta.routingKey && meta.exchange) {
+                } else if (meta.routingKey && meta.exchange) {
                     checks.push(
                         extractMetadataByDecorator<ExchangeDecoratorInterface>(meta.exchange, 'Exchange').name === message.fields.exchange
+                        && typeof meta.routingKey === 'string' && this._testValue(meta.routingKey, message.fields.routingKey)
                     );
-                    checks.push(typeof meta.routingKey === 'string' && this._testValue(meta.routingKey, message.fields.routingKey));
+                } else if (meta.exchange && !message.fields.routingKey) {
+                    checks.push(message.fields.exchange ===
+                        extractMetadataByDecorator<ExchangeDecoratorInterface>(meta.exchange, 'Exchange').name);
                 }
 
                 let checkFilter = false;
@@ -91,9 +91,14 @@ export class MessageRouter {
                         checkFilter = !!entries.find(([key, value]) => {
                             return this._testValue(value, _get(message, key.split('.')));
                         });
+
+                        if (checkFilter) {
+                            checks.push(true);
+                        } else {
+                            checks = [];
+                        }
                     }
                 }
-                checks.push(checkFilter);
 
                 return {
                     score: checks.filter(Boolean).length,
@@ -103,6 +108,7 @@ export class MessageRouter {
             })
             .filter(item => item.score > 0);
 
+        /* istanbul ignore next */
         score.sort((a, b) => {
             if (a.score > b.score) {
                 return -1;

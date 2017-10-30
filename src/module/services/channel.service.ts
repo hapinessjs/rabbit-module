@@ -1,6 +1,6 @@
-import { ChannelManager } from '../managers';
+import { ChannelManager, ConnectionManager } from '../managers';
 import { Injectable } from '@hapiness/core';
-import { Channel, Connection } from 'amqplib';
+import { Channel } from 'amqplib';
 import { Observable } from 'rxjs';
 import { RabbitConnectionService } from './rabbit-connection.service';
 
@@ -12,15 +12,15 @@ export interface CreateChannelOptions {
 @Injectable()
 export class ChannelService {
     private _channels = {};
-    private _connection: Connection;
+    private _connectionManager: ConnectionManager;
 
     constructor(private _connectionService: RabbitConnectionService) {
         if (!this._connectionService.connectionManager.isConnected()) {
             throw new Error('Connect to RabbitMQ before using ChannelService');
         }
 
-        this._connection = this._connectionService.connection;
-        const channel = new ChannelManager(this._connection);
+        this._connectionManager = this._connectionService.connectionManager;
+        const channel = new ChannelManager(this._connectionManager);
         channel.setChannel(this._connectionService.connectionManager.defaultChannel);
         this._channels['default'] = channel;
     }
@@ -30,7 +30,7 @@ export class ChannelService {
             return Observable.of(this.get(key));
         }
 
-        const channel = new ChannelManager(this._connection);
+        const channel = new ChannelManager(this._connectionManager);
         return channel
             .create()
             .flatMap(ch => (isNaN(prefetch) ? Observable.of(ch) : channel.prefetch(prefetch, global).map(_ => ch)))

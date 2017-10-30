@@ -64,14 +64,19 @@ export function sendMessage(ch: ChannelInterface, message: any, options: Message
     }
 }
 
-export const decodeContent = (message: any) => {
-    if (_has(message, 'fields') && _has(message, 'properties.headers') && _has(message, 'content')) {
+export const decodeJSONContent = (message: any, force = false) => {
+    if (!_has(message, 'content')) {
+        throw new Error('Cannot decode invalid message');
+    }
+
+
+    if (force || (_has(message, 'fields') && _has(message, 'properties.headers') && message.properties.headers.json)) {
         try {
-            return message.properties.headers.json ? JSON.parse(message.content.toString()) : message.content;
+            return JSON.parse(message.content.toString());
         } catch (err) {
             throw new Error('Cannot parse JSON message');
         }
     }
 
-    throw new Error('Cannot decode message content');
+    return message.content;
 };
