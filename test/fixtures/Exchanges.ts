@@ -1,5 +1,5 @@
 import { Exchange } from '../../src/module/decorators';
-import { ExchangeType, ExchangeInterface } from '../../src/module/interfaces';
+import { ExchangeType } from '../../src/module/interfaces';
 import { Observable } from 'rxjs';
 
 @Exchange({
@@ -16,7 +16,13 @@ export class UserExchange {}
     name: 'another.exchange',
     type: ExchangeType.Direct
 })
-export class AnotherExchange implements ExchangeInterface {}
+export class AnotherExchange {}
+
+@Exchange({
+    name: 'foo.exchange',
+    type: ExchangeType.Direct
+})
+export class FooExchange {}
 
 @Exchange({
     name: 'events.all',
@@ -26,7 +32,7 @@ export class AnotherExchange implements ExchangeInterface {}
         autoDelete: false
     }
 })
-export class EventsExchange implements ExchangeInterface {
+export class EventsExchange {
     onAsserted() {
         return Observable.of(null);
     }

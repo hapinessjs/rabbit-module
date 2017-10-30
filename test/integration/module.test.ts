@@ -9,7 +9,6 @@ import {
     UserDeletedMessage,
     GeneratePdf,
     OrderCreatedMessage,
-    FallbackMessage,
     PokemonsMessage
 } from '../fixtures/Messages';
 import { MayonaiseService } from '../fixtures/Services';
@@ -31,7 +30,6 @@ export class RabbitMQIntegrationTest {
                 UserDeletedMessage,
                 GeneratePdf,
                 OrderCreatedMessage,
-                FallbackMessage,
                 PokemonsMessage,
                 UserExchange,
                 EventsExchange,
