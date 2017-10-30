@@ -108,6 +108,7 @@ export class MessageRouter {
             })
             .filter(item => item.score > 0);
 
+        /* istanbul ignore next */
         score.sort((a, b) => {
             if (a.score > b.score) {
                 return -1;
