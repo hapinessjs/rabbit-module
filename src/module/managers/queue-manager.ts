@@ -85,7 +85,7 @@ export class QueueManager {
                 return Observable.of({ ack: true });
             };
         } else {
-            defaultDispatch = this._queue['onMessage'];
+            defaultDispatch = this._queue['onMessage'].bind(this._queue);
         }
 
         if (typeof _dispatcher !== 'function') {

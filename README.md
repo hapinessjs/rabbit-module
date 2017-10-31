@@ -222,8 +222,8 @@ $ yarn add @hapiness/core @hapiness/rabbitmq rxjs
 ```javascript
 "dependencies": {
     "@hapiness/core": "^1.1.1",
-    "@hapiness/rabbitmq": "^1.0.1",
-    "rxjs": "^5.5.0",
+    "@hapiness/rabbitmq": "^1.1.1",
+    "rxjs": "^5.5.2",
     //...
 }
 //...
@@ -258,7 +258,7 @@ Hapiness
                     connection: {
                         host: 'localhost',
                         port: 5276,
-                        vhost: 'my_vhost'
+                        vhost: 'my_vhost',
                         login: 'xxx',
                         password: 'xxxx'
                     }
@@ -453,6 +453,8 @@ To set up your development environment:
 [Back to top](#table-of-contents)
 
 ## Change History
+* v1.1.1 (2017-10-31)
+    * Fix queue binding
 * v1.1.0 (2017-10-27)
     * Allow to define queue binds without pattern
     * Allow to define queue bind pattern as array
