@@ -462,6 +462,9 @@ To set up your development environment:
     * Rework dispatcher logic (1)
     * Add channel option for queue to allow using different channel for each queue with a different prefetch
     * Export a global event object for connection and queueManager events
+    * Correct logic behind message routing
+    * Add checks and throw if messages do not have all required properties
+    * If the message has a filter property and it does not match discard the class from the selection
     * Update tests
     * Update documentation
 * v1.0.0 (2017-10-23)
