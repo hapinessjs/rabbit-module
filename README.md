@@ -222,7 +222,7 @@ $ yarn add @hapiness/core @hapiness/rabbitmq rxjs
 ```javascript
 "dependencies": {
     "@hapiness/core": "^1.1.1",
-    "@hapiness/rabbitmq": "^1.1.1",
+    "@hapiness/rabbitmq": "^1.1.2",
     "rxjs": "^5.5.2",
     //...
 }
@@ -453,6 +453,8 @@ To set up your development environment:
 [Back to top](#table-of-contents)
 
 ## Change History
+* v1.1.2 (2017-11-02)
+    * Fix decorators prefetch
 * v1.1.1 (2017-10-31)
     * Fix queue binding
 * v1.1.0 (2017-10-27)
