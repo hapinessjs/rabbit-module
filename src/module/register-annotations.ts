@@ -5,7 +5,7 @@ import { errorHandler } from '@hapiness/core/core';
 import { DependencyInjection } from '@hapiness/core/core/di';
 import { Channel as ChannelInterface } from 'amqplib';
 import { ConnectionManager } from './managers';
-import { QueueDecoratorInterface, ExchangeDecoratorInterface, MessageDecoratorInterface } from './decorators';
+import { QueueDecoratorInterface, ExchangeDecoratorInterface, MessageDecoratorInterface, ChannelOptions } from './decorators';
 import { QueueManager } from './managers';
 import { ExchangeManager, ExchangeWrapper, QueueWrapper } from './managers';
 import { MessageRouter } from './message-router';
@@ -26,9 +26,10 @@ export class RegisterAnnotations {
             });
     }
 
-    public static getChannel(module: CoreModule, connection, key): Observable<ChannelInterface> {
+    public static getChannel(module: CoreModule, connection, channel: ChannelOptions): Observable<ChannelInterface> {
         return DependencyInjection.instantiateComponent(ChannelService, module.di)
-            .switchMap(channelService => channelService.upsert(key).map(channelManager => channelManager.getChannel()));
+            .switchMap(channelService =>
+                channelService.upsert(channel.key, { prefetch: channel.prefetch }).map(channelManager => channelManager.getChannel()));
     }
 
     public static buildExchanges(module, connection: ConnectionManager): Observable<any> {
@@ -52,7 +53,7 @@ export class RegisterAnnotations {
                 .mergeMap(({ instance, _ }) =>
                     _.data.channel ?
                         RegisterAnnotations
-                            .getChannel(module, connection, _.data.channel.key)
+                            .getChannel(module, connection, _.data.channel)
                             .map(channel => ({ instance, _, channel }))
                         : Observable.of({ instance, _, channel: connection.defaultChannel }))
                 .mergeMap(({ instance, _, channel }) => {
