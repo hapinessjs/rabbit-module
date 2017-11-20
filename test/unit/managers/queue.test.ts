@@ -9,7 +9,7 @@ import { ChannelMock } from '../../mocks/Channel';
 import { UserQueue, AnotherQueue } from '../../fixtures/Queues';
 import { UserExchange } from '../../fixtures/Exchanges';
 import { generateMessage } from '../../mocks/Message';
-import { extractMetadataByDecorator } from '@hapiness/core/core';
+import { extractMetadataByDecorator } from '@hapiness/core';
 
 @suite('- Unit Queue')
 export class QueueServiceUnitTest {

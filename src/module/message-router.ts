@@ -1,5 +1,5 @@
 import * as _get from 'lodash.get';
-import { extractMetadataByDecorator } from '@hapiness/core/core';
+import { extractMetadataByDecorator } from '@hapiness/core';
 import { Channel as ChannelInterface } from 'amqplib';
 import { Observable } from 'rxjs';
 import { MessageResult, RabbitMessage, MessageInterface } from './interfaces';

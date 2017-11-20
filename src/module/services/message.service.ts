@@ -1,9 +1,8 @@
-import { Injectable } from '@hapiness/core';
+import { Injectable, extractMetadataByDecorator } from '@hapiness/core';
 import { ChannelService } from './channel.service';
 import { MessageOptions, QueueInterface, ExchangeInterface } from '../interfaces';
 import { sendMessage } from '../message';
 import { QueueDecoratorInterface, ExchangeDecoratorInterface } from '../decorators';
-import { extractMetadataByDecorator } from '@hapiness/core/core';
 import { Channel } from 'amqplib';
 
 @Injectable()

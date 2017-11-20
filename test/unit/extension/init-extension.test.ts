@@ -6,7 +6,7 @@ import { ChannelMock } from '../../mocks/Channel';
 import { Channel } from 'amqplib';
 import { MessageRouter } from '../../../src/module/message-router';
 import { UserQueue } from '../../fixtures/Queues';
-import { extractMetadataByDecorator } from '@hapiness/core/core';
+import { extractMetadataByDecorator } from '@hapiness/core';
 import { generateMessage } from '../../mocks/Message';
 import { Observable, Subscription } from 'rxjs';
 import { ErrorObservable } from 'rxjs/observable/ErrorObservable';

@@ -4,7 +4,7 @@ import { Channel as ChannelInterface, Replies } from 'amqplib';
 import { sendMessage, decodeJSONContent } from '../message';
 import { MessageResult, MessageOptions, RabbitMessage, QueueOptions, ConsumeOptions, QueueInterface } from '../interfaces';
 import { Bind } from '../decorators';
-import { extractMetadataByDecorator, errorHandler } from '@hapiness/core/core';
+import { extractMetadataByDecorator, errorHandler } from '@hapiness/core';
 import { ExchangeDecoratorInterface } from '../index';
 import { QueueWrapper } from './queue-wrapper';
 import { events } from '../events';
