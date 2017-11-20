@@ -1,5 +1,5 @@
 import { Type } from '@hapiness/core';
-import { createDecorator, CoreDecorator } from '@hapiness/core/core/decorators';
+import { createDecorator, CoreDecorator } from '@hapiness/core';
 import { Options } from 'amqplib';
 import { ExchangeType } from './interfaces/index';
 

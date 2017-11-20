@@ -7,7 +7,7 @@ import { ExchangeManager, ExchangeWrapper } from '../../../src/module/managers';
 import { ChannelMock } from '../../mocks/Channel';
 import { UserExchange, EventsExchange } from '../../fixtures/Exchanges';
 import { ExchangeType } from '../../../src/module/interfaces';
-import { extractMetadataByDecorator } from '@hapiness/core/core';
+import { extractMetadataByDecorator } from '@hapiness/core';
 
 @suite('- Unit Exchange')
 export class ExchangeServiceUnitTest {

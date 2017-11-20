@@ -1,8 +1,5 @@
 import { Observable } from 'rxjs';
-import { extractMetadataByDecorator } from '@hapiness/core/core/metadata';
-import { Type, CoreModule } from '@hapiness/core';
-import { errorHandler } from '@hapiness/core/core';
-import { DependencyInjection } from '@hapiness/core/core/di';
+import { Type, CoreModule, extractMetadataByDecorator, errorHandler, DependencyInjection } from '@hapiness/core';
 import { Channel as ChannelInterface } from 'amqplib';
 import { ConnectionManager } from './managers';
 import { QueueDecoratorInterface, ExchangeDecoratorInterface, MessageDecoratorInterface, ChannelOptions } from './decorators';

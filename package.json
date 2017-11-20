@@ -1,8 +1,8 @@
 {
   "name": "@hapiness/rabbitmq",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "description": "Hapiness module for rabbitmq",
-  "main": "index.js",
+  "main": "commonjs/index.js",
   "types": "index.d.ts",
   "scripts": {
     "test": "make test",
@@ -79,7 +79,7 @@
   },
   "devDependencies": {
     "@hapiness/config": "^1.0.0",
-    "@hapiness/core": "^1.1.1",
+    "@hapiness/core": "^1.2.2",
     "@types/fs-extra": "^4.0.3",
     "coveralls": "^3.0.0",
     "fs-extra": "^4.0.2",
@@ -90,11 +90,11 @@
     "rxjs": "^5.5.2",
     "ts-node": "^3.3.0",
     "tslint": "^5.8.0",
-    "typescript": "^2.5.3",
+    "typescript": "^2.6.1",
     "unit.js": "^2.0.0"
   },
   "peerDependencies": {
-    "@hapiness/core": "1.1.1",
+    "@hapiness/core": "1.2.2",
     "rxjs": "^5.5.2"
   },
   "engines": {

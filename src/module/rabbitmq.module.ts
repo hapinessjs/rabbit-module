@@ -3,7 +3,7 @@ import { ChannelService, RabbitConnectionService } from './services';
 import { MessageService } from './services/message.service';
 
 @HapinessModule({
-    version: '1.1.2',
+    version: '1.2.0',
     declarations: [],
     providers: [],
     exports: [RabbitConnectionService, ChannelService, MessageService],

@@ -3,7 +3,7 @@ import { Observable } from 'rxjs';
 
 import { ConnectionManager } from './managers';
 import { RabbitMQConfig } from './interfaces/config';
-import { errorHandler } from '@hapiness/core/core';
+import { errorHandler } from '@hapiness/core';
 
 const debug = require('debug')('hapiness:rabbitmq');
 
