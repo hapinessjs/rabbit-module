@@ -2,14 +2,14 @@
 # yarn lockfile v1
 
 
-"@hapiness/config@^1.0.0":
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/@hapiness/config/-/config-1.0.0.tgz#068f0b8d5840dd3e22aba1f87e4c1c2f41aba2c8"
+"@hapiness/config@^1.1.0":
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/@hapiness/config/-/config-1.1.0.tgz#afe5fc544a75c9e4a9fb50f1b9d2b8a728e44a38"
   dependencies:
     "@types/config" "^0.0.33"
-    "@types/node" "^8.0.47"
+    "@types/node" "^8.0.53"
     clone "^2.1.1"
-    config "^1.27.0"
+    config "^1.28.1"
     debug "^3.1.0"
     js-yaml "^3.10.0"
 
@@ -28,9 +28,9 @@
     reflect-metadata "^0.1.10"
     websocket "^1.0.25"
 
-"@types/amqplib@^0.5.4":
-  version "0.5.4"
-  resolved "https://registry.yarnpkg.com/@types/amqplib/-/amqplib-0.5.4.tgz#d07237e1c11a33b779e061aa17de5e6617fceaf6"
+"@types/amqplib@^0.5.5":
+  version "0.5.5"
+  resolved "https://registry.yarnpkg.com/@types/amqplib/-/amqplib-0.5.5.tgz#a6c0e43febd9c8adf2966a3e4e5a1fd0b5dbc936"
   dependencies:
     "@types/bluebird" "*"
     "@types/node" "*"
@@ -89,9 +89,13 @@
   dependencies:
     "@types/mime-db" "*"
 
-"@types/node@*", "@types/node@^8.0.47", "@types/node@^8.0.53":
+"@types/node@*", "@types/node@^8.0.53":
   version "8.0.53"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-8.0.53.tgz#396b35af826fa66aad472c8cb7b8d5e277f4e6d8"
+
+"@types/node@^7.0.48":
+  version "7.0.48"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-7.0.48.tgz#24bfdc0aa82e8f6dbd017159c58094a2e06d0abb"
 
 "@types/podium@*":
   version "1.0.0"
@@ -125,8 +129,8 @@ accept@^2.1.4:
     hoek "4.x.x"
 
 ajv@^5.1.0:
-  version "5.3.0"
-  resolved "https://registry.yarnpkg.com/ajv/-/ajv-5.3.0.tgz#4414ff74a50879c208ee5fdc826e32c303549eda"
+  version "5.4.0"
+  resolved "https://registry.yarnpkg.com/ajv/-/ajv-5.4.0.tgz#32d1cf08dbc80c432f426f12e10b2511f6b46474"
   dependencies:
     co "^4.6.0"
     fast-deep-equal "^1.0.0"
@@ -464,9 +468,15 @@ combined-stream@~0.0.4:
   dependencies:
     delayed-stream "0.0.5"
 
-commander@2.11.0, commander@^2.9.0:
+commander@2.11.0:
   version "2.11.0"
   resolved "https://registry.yarnpkg.com/commander/-/commander-2.11.0.tgz#157152fd1e7a6c8d98a5b715cf376df928004563"
+
+commander@^2.9.0:
+  version "2.12.0"
+  resolved "https://registry.yarnpkg.com/commander/-/commander-2.12.0.tgz#2f13615c39c687a77926aa68ef25c099db1e72fb"
+  dependencies:
+    "@types/node" "^7.0.48"
 
 component-emitter@1.1.2:
   version "1.1.2"
@@ -476,7 +486,7 @@ concat-map@0.0.1:
   version "0.0.1"
   resolved "https://registry.yarnpkg.com/concat-map/-/concat-map-0.0.1.tgz#d8a96bd77fd68df7793a73036a3ba0d5405d477b"
 
-config@^1.27.0:
+config@^1.28.1:
   version "1.28.1"
   resolved "https://registry.yarnpkg.com/config/-/config-1.28.1.tgz#7625d2a1e4c90f131d8a73347982d93c3873282d"
   dependencies:

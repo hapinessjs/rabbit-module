@@ -13,6 +13,8 @@ import { ErrorObservable } from 'rxjs/observable/ErrorObservable';
 import { RabbitMQExt } from '../../../src/module/rabbitmq.extension';
 import { ConnectionManagerMock } from '../../mocks/ConnectionManager';
 
+// let errorHandler  = require('@hapiness/core/core').errorHandler;
+
 @suite('- Unit InitExtension')
 export class InitExtensionUnitTest {
     private ch: Channel;
@@ -118,5 +120,15 @@ export class InitExtensionUnitTest {
                 .catch(() => done())
         );
         connection.emit('error', new Error('Woops'));
+    }
+
+    @test('- Should test error on consumeQueue')
+    testConsumeError(done) {
+        const queueStub = {
+            getName: () => 'hello',
+            consume: () => Observable.throw(new Error('Cannot consume'))
+        };
+        RegisterAnnotations.consumeQueue(<any>queueStub, <any>{})
+        .subscribe((_) => done(), err => done(err));
     }
 }
