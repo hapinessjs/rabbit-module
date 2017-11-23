@@ -46,6 +46,10 @@ export class QueueManager {
         return this._name;
     }
 
+    getQueue(): QueueInterface {
+        return this._queue;
+    }
+
     assert(): Observable<QueueManager> {
         const obs = Observable.fromPromise(this._ch.assertQueue(this.getName(), this._options));
         debug(`asserting queue ${this.getName()}...`);

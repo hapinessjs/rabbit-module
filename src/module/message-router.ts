@@ -30,6 +30,7 @@ export class MessageRouter {
         }
 
         this.classes.push({ messageClass, data });
+        return messageClass;
     }
 
     getDispatcher(ch: ChannelInterface, message: RabbitMessage): Observable<() => messageResult> {
@@ -66,44 +67,47 @@ export class MessageRouter {
         const score = this.classes
             .map(_class => {
                 const meta = _class.data;
-                let checks = [];
+                const notFound = {
+                    score: 0,
+                    entry: _class
+                };
+                const matchs = {
+                    amqp_fields : false,
+                    filter: false
+                };
 
                 if (
                     extractMetadataByDecorator<QueueDecoratorInterface>(meta.queue, 'Queue').name === message.fields.exchange &&
                     !message.fields.routingKey &&
                     !meta.routingKey
                 ) {
-                    checks.push(true);
+                    matchs.amqp_fields = true;
                 } else if (meta.routingKey && meta.exchange) {
-                    checks.push(
+                    matchs.amqp_fields =
                         extractMetadataByDecorator<ExchangeDecoratorInterface>(meta.exchange, 'Exchange').name === message.fields.exchange
-                        && typeof meta.routingKey === 'string' && this._testValue(meta.routingKey, message.fields.routingKey)
-                    );
+                        && typeof meta.routingKey === 'string' && this._testValue(meta.routingKey, message.fields.routingKey);
                 } else if (meta.exchange && !message.fields.routingKey) {
-                    checks.push(message.fields.exchange ===
-                        extractMetadataByDecorator<ExchangeDecoratorInterface>(meta.exchange, 'Exchange').name);
+                    matchs.amqp_fields = message.fields.exchange ===
+                        extractMetadataByDecorator<ExchangeDecoratorInterface>(meta.exchange, 'Exchange').name;
                 }
 
-                let checkFilter = false;
+                if (!matchs.amqp_fields) {
+                    return notFound;
+                }
+
                 if (typeof meta.filter === 'object') {
                     const entries = Object.entries(meta.filter);
                     if (entries.length) {
-                        checkFilter = !!entries.find(([key, value]) => {
-                            return this._testValue(value, _get(message, key.split('.')));
-                        });
-
-                        if (checkFilter) {
-                            checks.push(true);
-                        } else {
-                            checks = [];
+                        matchs.filter = entries.every(([key, value]) => this._testValue(value, _get(message, key.split('.'))));
+                        if (!matchs.filter) {
+                            return notFound;
                         }
                     }
                 }
 
                 return {
-                    score: checks.filter(Boolean).length,
+                    score: Object.values(matchs).filter(Boolean).length,
                     entry: _class,
-                    checks
                 };
             })
             .filter(item => item.score > 0);

@@ -19,6 +19,37 @@ export class FooMessage implements MessageInterface {
 @Message({
     queue: AnotherQueue,
     exchange: UserExchange,
+    routingKey: 'basket',
+    filter: {
+        'content.action': 'edited'
+    }
+})
+export class BasketEditedMessage implements MessageInterface {
+
+    onMessage(message: RabbitMessage) {
+        return Observable.of({ ack: true });
+    }
+}
+
+@Message({
+    queue: AnotherQueue,
+    exchange: UserExchange,
+    routingKey: 'profile',
+    filter: {
+        'content.action': 'edited',
+        'content.foo': 'bar'
+    }
+})
+export class ProfileEditedMessage implements MessageInterface {
+
+    onMessage(message: RabbitMessage) {
+        return Observable.of({ ack: true });
+    }
+}
+
+@Message({
+    queue: AnotherQueue,
+    exchange: UserExchange,
     routingKey: 'user',
     filter: {
         'content.action': 'edited'

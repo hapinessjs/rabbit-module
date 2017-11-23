@@ -1,6 +1,6 @@
 import { Queue } from '../../src/module/decorators';
 import { UserExchange, EventsExchange } from './Exchanges';
-import { MessageResult, QueueInterface } from '../../src/module/interfaces';
+import { MessageResult } from '../../src/module/interfaces';
 import { Observable } from 'rxjs';
 
 @Queue({
@@ -26,7 +26,7 @@ import { Observable } from 'rxjs';
         }
     ]
 })
-export class UserQueue implements QueueInterface {
+export class UserQueue {
     onAsserted() {
         return Observable.of(null);
     }
@@ -52,7 +52,7 @@ export class UserQueue implements QueueInterface {
         }
     ]
 })
-export class AnotherQueue implements QueueInterface {}
+export class AnotherQueue {}
 
 @Queue({
     name: 'worker',
@@ -60,4 +60,12 @@ export class AnotherQueue implements QueueInterface {}
         durable: true
     }
 })
-export class WorkerQueue implements QueueInterface {}
+export class WorkerQueue {}
+
+@Queue({
+    name: 'empty',
+    options: {
+        durable: true
+    }
+})
+export class EmptyQueue {}
