@@ -15,7 +15,9 @@ import {
     PokemonsMessage,
     FooMessage,
     UserCreatedActionMessage,
-    UserCreatedActionNotMatchedMessage
+    UserCreatedActionNotMatchedMessage,
+    BasketEditedMessage,
+    ProfileEditedMessage
 } from '../fixtures/Messages';
 import { MayonaiseService } from '../fixtures/Services';
 import { generateMessage } from '../mocks/Message';
@@ -60,8 +62,12 @@ export class MessageRouterUnitTest {
         const userEditedMessage = new UserEditedMessage(new MayonaiseService());
         const fooMessage = new FooMessage();
         const userCreatedActionMessage = new UserCreatedActionMessage();
+        const basketEditedMessage = new BasketEditedMessage();
+        const profileEditedMessage = new ProfileEditedMessage();
 
         this.messageRouter.registerMessage(userDeletedMessage);
+        this.messageRouter.registerMessage(basketEditedMessage);
+        this.messageRouter.registerMessage(profileEditedMessage);
         this.messageRouter.registerMessage(userEditedMessage);
         this.messageRouter.registerMessage(orderCreatedMessage);
         this.messageRouter.registerMessage(generatePdfMessage);
@@ -97,6 +103,26 @@ export class MessageRouterUnitTest {
         unit
             .value(this.messageRouter.findClass(message_fooMessageRoutingKey))
             .is(null);
+
+        const message_basketEdited = generateMessage(
+            { basket_id: 8309, action: 'edited' }, { exchange: 'user.exchange', routingKey: 'basket' }, false);
+        unit
+            .object(this.messageRouter.findClass(message_basketEdited))
+            .isInstanceOf(BasketEditedMessage)
+            .is(basketEditedMessage);
+
+        const message_profileEdited_notFound = generateMessage(
+            { profile_id: 19237, action: 'edited' }, { exchange: 'user.exchange', routingKey: 'profile' }, false);
+        unit
+            .value(this.messageRouter.findClass(message_profileEdited_notFound))
+            .is(null);
+
+        const message_profileEdited = generateMessage(
+            { profile_id: 19237, action: 'edited', foo: 'bar' }, { exchange: 'user.exchange', routingKey: 'profile' }, false);
+        unit
+            .object(this.messageRouter.findClass(message_profileEdited))
+            .isInstanceOf(ProfileEditedMessage)
+            .is(profileEditedMessage);
 
         const message_userEdited = generateMessage(
             { user_id: 4028, action: 'edited' }, { exchange: 'user.exchange', routingKey: 'user' }, false);
@@ -165,13 +191,22 @@ export class MessageRouterUnitTest {
 
         const message_FindPokemon = generateMessage(
             { action: 'pokemons_find', area: { lat: 0.234, long: 0.2345, radius: 5 } },
-            { exchange: 'another.exchange' },
+            { exchange: 'another.queue' },
             false
         );
         unit
             .object(this.messageRouter.findClass(message_FindPokemon))
             .isInstanceOf(PokemonsMessage)
             .is(pokemonsMessage);
+
+        const message_FindPokemon_notFound = generateMessage(
+            { action: 'pokemons_find', area: { lat: 0.234, long: 0.2345, radius: 5 } },
+            { exchange: 'another.exchange' },
+            false
+        );
+        unit
+            .value(this.messageRouter.findClass(message_FindPokemon_notFound))
+            .is(null);
 
         const pending = [];
         pending.push(
@@ -227,9 +262,9 @@ export class MessageRouterUnitTest {
 
         Observable.forkJoin(pending).subscribe(_ => {
             unit.number(this.messageRouter.getDispatcher['callCount']).is(5);
-            unit.number(this.messageRouter.findClass['callCount']).is(17);
+            unit.number(this.messageRouter.findClass['callCount']).isGreaterThan(15);
             unit.array(this.messageRouter.registerMessage['firstCall'].args).is([userDeletedMessage]);
-            unit.number(this.messageRouter['_testValue']['callCount']).is(120);
+            unit.number(this.messageRouter['_testValue']['callCount']).isGreaterThan(50);
             done();
         });
     }

@@ -14,9 +14,9 @@ const debug = require('debug')('hapiness:rabbitmq');
 export class RegisterAnnotations {
     public static bootstrap(module: CoreModule, connection: ConnectionManager) {
         debug('bootstrap extension');
-        return this.buildExchanges(module, connection)
+        return RegisterAnnotations.buildExchanges(module, connection)
             .toArray()
-            .flatMap(_ => this.buildQueues(module, connection))
+            .flatMap(_ => RegisterAnnotations.buildQueues(module, connection))
             .toArray()
             .flatMap(_ => {
                 return Observable.of(null);
@@ -77,19 +77,32 @@ export class RegisterAnnotations {
                 })
                 // Register messages related to queue
                 // Consume queue
+                // Dont consume queue if there are no messages or consume() method on queue
                 .mergeMap(queue => {
                     const messageRouter = new MessageRouter();
-                    return this.registerMessages(module, queue, messageRouter)
+                    return RegisterAnnotations.registerMessages(module, queue, messageRouter)
                         .defaultIfEmpty(null)
+                        .filter(item => !!item)
                         .toArray()
-                        .map(() => this.consumeQueue(queue, messageRouter));
+                        .switchMap((registeredMessages) => {
+                            const _queue = queue.getQueue();
+                            const isConsumable$ = Observable.of(
+                                registeredMessages.length || typeof _queue['onMessage'] === 'function');
+                            return Observable.merge(
+                                isConsumable$.filter(_ => !_),
+                                isConsumable$.filter(_ => !!_)
+                                    .map(() => RegisterAnnotations.consumeQueue(queue, messageRouter))
+                            );
+                        });
                 })
         );
     }
 
-    static consumeQueue(queue: QueueManager, messageRouter: MessageRouter) {
+    static consumeQueue(queue: QueueManager, messageRouter: MessageRouter): Observable<any> {
         debug(`Creating dispatcher for queue ${queue.getName()}`);
-        queue.consume((ch, message) => messageRouter.getDispatcher(ch, message)).subscribe(() => {}, err => errorHandler(err));
+        return queue.consume(
+            (ch, message) => messageRouter.getDispatcher(ch, message))
+            .catch(err => Observable.of(errorHandler(err)));
     }
 
     public static registerMessages(module, queue: QueueManager, messageRouter: MessageRouter) {
