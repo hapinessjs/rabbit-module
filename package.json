@@ -1,6 +1,6 @@
 {
   "name": "@hapiness/rabbitmq",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Hapiness module for rabbitmq",
   "main": "commonjs/index.js",
   "types": "index.d.ts",
@@ -70,7 +70,7 @@
   },
   "homepage": "https://github.com/hapinessjs/rabbit-module#readme",
   "dependencies": {
-    "@types/amqplib": "^0.5.4",
+    "@types/amqplib": "^0.5.5",
     "amqplib": "^0.5.1",
     "debug": "^3.0.1",
     "lodash.get": "^4.4.2",
@@ -78,7 +78,7 @@
     "lodash.pick": "^4.4.0"
   },
   "devDependencies": {
-    "@hapiness/config": "^1.0.0",
+    "@hapiness/config": "^1.1.0",
     "@hapiness/core": "^1.2.2",
     "@types/fs-extra": "^4.0.3",
     "coveralls": "^3.0.0",
