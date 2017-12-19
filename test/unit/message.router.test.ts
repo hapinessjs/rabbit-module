@@ -82,8 +82,8 @@ export class MessageRouterUnitTest {
                 unit.when('Invalid message', this.messageRouter.registerMessage(fallbackMessage));
             })
             .isInstanceOf(Error)
-            .hasProperty('message', `Cannot register a message without an exchange or routingKey or
- filter, use your queue onMessage method instead`);
+            .hasProperty('message', `Cannot register a message without an exchange or routingKey,
+ filter or set is_fallback to true use your queue onMessage method instead`);
 
         unit
             .exception(_ => {
@@ -160,7 +160,7 @@ export class MessageRouterUnitTest {
 
         const message_generatePdf = generateMessage(
             { url: 'http://xxx.com/zzz.html', action: 'generate_pdf' },
-            { exchange: 'worker', routingKey: '' },
+            { routingKey: 'worker', exchange: '' },
             false
         );
         unit
@@ -177,7 +177,9 @@ export class MessageRouterUnitTest {
             .isInstanceOf(OrderCreatedMessage)
             .is(orderCreatedMessage);
 
-        const message_fallback = generateMessage({ reason: 'These are not the droid you are looking for' }, { exchange: 'worker' }, false);
+        const message_fallback = generateMessage({
+            reason: 'These are not the droid you are looking for'
+        }, { routingKey: 'worker' }, false);
         unit
             .value(this.messageRouter.findClass(message_fallback))
             .is(null);
@@ -191,7 +193,7 @@ export class MessageRouterUnitTest {
 
         const message_FindPokemon = generateMessage(
             { action: 'pokemons_find', area: { lat: 0.234, long: 0.2345, radius: 5 } },
-            { exchange: 'another.queue' },
+            { routingKey: 'another.queue' },
             false
         );
         unit
@@ -201,7 +203,7 @@ export class MessageRouterUnitTest {
 
         const message_FindPokemon_notFound = generateMessage(
             { action: 'pokemons_find', area: { lat: 0.234, long: 0.2345, radius: 5 } },
-            { exchange: 'another.exchange' },
+            { routingKey: 'another.exchange' },
             false
         );
         unit
