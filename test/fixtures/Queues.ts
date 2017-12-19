@@ -63,6 +63,14 @@ export class AnotherQueue {}
 export class WorkerQueue {}
 
 @Queue({
+    name: 'test.fallback',
+    options: {
+        durable: true
+    }
+})
+export class TestFallback {}
+
+@Queue({
     name: 'empty',
     options: {
         durable: true

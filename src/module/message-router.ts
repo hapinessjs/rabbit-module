@@ -104,8 +104,14 @@ export class MessageRouter {
                     }
                 }
 
+                let _score = Object.values(matchs).filter(Boolean).length;
+
+                if (meta.is_fallback) {
+                    _score += 1;
+                }
+
                 return {
-                    score: Object.values(matchs).filter(Boolean).length,
+                    score: _score,
                     entry: _class,
                 };
             })

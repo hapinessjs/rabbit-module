@@ -2,7 +2,7 @@ import { Message } from '../../src/module/decorators';
 import { MayonaiseService } from './Services';
 import { UserExchange, AnotherExchange, FooExchange } from './Exchanges';
 import { Observable } from 'rxjs';
-import { AnotherQueue, WorkerQueue } from './Queues';
+import { AnotherQueue, WorkerQueue, TestFallback } from './Queues';
 import { MessageInterface, RabbitMessage } from '../../src/module/interfaces';
 
 @Message({
@@ -145,12 +145,23 @@ export class GeneratePdf implements MessageInterface {
 }
 
 /*
- This is not allowed, use onMessage() method on your @Queue() instead !
+ This is not allowed unless you specify is_fallback to true
+ For this use case, only one message attached to your queue, you should use onMessage() on your @Queue directly
 */
 @Message({
     queue: WorkerQueue
 })
 export class FallbackMessage implements MessageInterface {
+    onMessage(message: RabbitMessage) {
+        return Observable.of(false);
+    }
+}
+
+@Message({
+    queue: TestFallback,
+    is_fallback: true
+})
+export class FallbackMessageOk implements MessageInterface {
     onMessage(message: RabbitMessage) {
         return Observable.of(false);
     }

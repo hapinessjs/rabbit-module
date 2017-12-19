@@ -12,6 +12,7 @@ import {
     UserEditedMessage,
     UserDeletedMessage,
     FallbackMessage,
+    FallbackMessageOk,
     PokemonsMessage,
     FooMessage,
     UserCreatedActionMessage,
@@ -59,6 +60,7 @@ export class MessageRouterUnitTest {
         const orderCreatedMessage = new OrderCreatedMessage();
         const pokemonsMessage = new PokemonsMessage();
         const fallbackMessage = new FallbackMessage();
+        const fallbackMessageOk = new FallbackMessageOk();
         const userEditedMessage = new UserEditedMessage(new MayonaiseService());
         const fooMessage = new FooMessage();
         const userCreatedActionMessage = new UserCreatedActionMessage();
@@ -69,6 +71,7 @@ export class MessageRouterUnitTest {
         this.messageRouter.registerMessage(basketEditedMessage);
         this.messageRouter.registerMessage(profileEditedMessage);
         this.messageRouter.registerMessage(userEditedMessage);
+        this.messageRouter.registerMessage(fallbackMessageOk);
         this.messageRouter.registerMessage(orderCreatedMessage);
         this.messageRouter.registerMessage(generatePdfMessage);
         this.messageRouter.registerMessage(userCreatedMessage);
@@ -179,10 +182,10 @@ export class MessageRouterUnitTest {
 
         const message_fallback = generateMessage({
             reason: 'These are not the droid you are looking for'
-        }, { routingKey: 'worker' }, false);
+        }, { routingKey: 'test.fallback' }, false);
         unit
             .value(this.messageRouter.findClass(message_fallback))
-            .is(null);
+            .is(fallbackMessageOk);
 
         const message_NotFound = generateMessage(
             { reason: 'These are not the droid you are looking for' },
@@ -211,12 +214,6 @@ export class MessageRouterUnitTest {
             .is(null);
 
         const pending = [];
-        pending.push(
-            this.messageRouter.getDispatcher(<any>this.ch, message_fallback).map(dispatcher => {
-                unit.value(dispatcher).is(null);
-            })
-        );
-
         pending.push(
             this.messageRouter.getDispatcher(<any>this.ch, message_orderCreated).switchMap(dispatcher => {
                 unit.function(dispatcher);
@@ -263,7 +260,7 @@ export class MessageRouterUnitTest {
         );
 
         Observable.forkJoin(pending).subscribe(_ => {
-            unit.number(this.messageRouter.getDispatcher['callCount']).is(5);
+            unit.number(this.messageRouter.getDispatcher['callCount']).isGreaterThan(1);
             unit.number(this.messageRouter.findClass['callCount']).isGreaterThan(15);
             unit.array(this.messageRouter.registerMessage['firstCall'].args).is([userDeletedMessage]);
             unit.number(this.messageRouter['_testValue']['callCount']).isGreaterThan(50);
