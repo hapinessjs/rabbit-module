@@ -221,9 +221,9 @@ $ yarn add @hapiness/core @hapiness/rabbitmq rxjs
 
 ```javascript
 "dependencies": {
-    "@hapiness/core": "^1.2.2",
-    "@hapiness/rabbitmq": "^1.2.1",
-    "rxjs": "^5.5.2",
+    "@hapiness/core": "^1.3.0",
+    "@hapiness/rabbitmq": "^1.2.2",
+    "rxjs": "^5.5.5",
     //...
 }
 //...
