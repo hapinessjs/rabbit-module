@@ -36,6 +36,7 @@ export class MessageServiceUnitTest {
         const stub = unit.stub(instance, '_sendMessage');
         stub.returns(true);
         instance.publish({ foo: 'bar' }, AnotherExchange);
+        instance.publish({ foo: 'bar' }, '');
     }
 
     @test('- Should test sendToQueue')
@@ -44,6 +45,7 @@ export class MessageServiceUnitTest {
         const stub = unit.stub(instance, '_sendMessage');
         stub.returns(true);
         instance.sendToQueue({ foo: 'bar' }, UserQueue);
+        instance.sendToQueue({ foo: 'bar' }, 'user.queue');
     }
 
     @test('- Should test send')

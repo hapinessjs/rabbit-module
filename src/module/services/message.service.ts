@@ -12,20 +12,19 @@ export class MessageService {
         this._sendMessage = sendMessage;
     }
 
-    sendToQueue(message, queue: typeof QueueInterface, options?: MessageOptions): boolean {
+    sendToQueue(message, queue: typeof QueueInterface | string, options?: MessageOptions): boolean {
         const ch = this._channelService.getChannel();
         const _options: MessageOptions = Object.assign({}, options);
-        const meta = extractMetadataByDecorator<QueueDecoratorInterface>(queue, 'Queue');
-        _options.queue = meta.name;
+        _options.queue = typeof queue === 'string' ? queue : extractMetadataByDecorator<QueueDecoratorInterface>(queue, 'Queue').name;
 
         return this.send(message, _options, ch);
     }
 
-    publish(message, exchange: typeof ExchangeInterface, options?: MessageOptions): boolean {
+    publish(message, exchange: typeof ExchangeInterface | string, options?: MessageOptions): boolean {
         const ch = this._channelService.getChannel();
         const _options: MessageOptions = Object.assign({}, options);
-        const meta = extractMetadataByDecorator<ExchangeDecoratorInterface>(exchange, 'Exchange');
-        _options.exchange = meta.name;
+        _options.exchange = typeof exchange === 'string' ?
+            exchange : extractMetadataByDecorator<ExchangeDecoratorInterface>(exchange, 'Exchange').name;
 
         return this.send(message, _options, ch);
     }

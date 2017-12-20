@@ -24,9 +24,9 @@ export class MessageRouter {
             throw new Error('Cannot register a message class without a queue');
         }
 
-        if (!data.exchange && !data.routingKey && (!data.filter || !Object.keys(data.filter).length)) {
-            throw new Error(`Cannot register a message without an exchange or routingKey or
- filter, use your queue onMessage method instead`);
+        if (!data.exchange && !data.routingKey && (!data.filter || !Object.keys(data.filter).length) && !data.is_fallback) {
+            throw new Error(`Cannot register a message without an exchange or routingKey,
+ filter or set is_fallback to true use your queue onMessage method instead`);
         }
 
         this.classes.push({ messageClass, data });
@@ -77,9 +77,8 @@ export class MessageRouter {
                 };
 
                 if (
-                    extractMetadataByDecorator<QueueDecoratorInterface>(meta.queue, 'Queue').name === message.fields.exchange &&
-                    !message.fields.routingKey &&
-                    !meta.routingKey
+                    extractMetadataByDecorator<QueueDecoratorInterface>(meta.queue, 'Queue').name === message.fields.routingKey &&
+                    message.fields.exchange === ''
                 ) {
                     matchs.amqp_fields = true;
                 } else if (meta.routingKey && meta.exchange) {
@@ -105,8 +104,14 @@ export class MessageRouter {
                     }
                 }
 
+                let _score = Object.values(matchs).filter(Boolean).length;
+
+                if (meta.is_fallback) {
+                    _score += 1;
+                }
+
                 return {
-                    score: Object.values(matchs).filter(Boolean).length,
+                    score: _score,
                     entry: _class,
                 };
             })

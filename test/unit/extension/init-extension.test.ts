@@ -54,11 +54,13 @@ export class InitExtensionUnitTest {
         done();
     }
 
-    @test('- Should test consumeQueue when queue.consume() returns error')
-    testConsumeQueueSubscribeError() {
+    @test('- Should test consumeQueue when queue.consume() returns error <>')
+    testConsumeQueueSubscribeError(done) {
         unit.function(RegisterAnnotations.consumeQueue);
         unit.stub(this.queue['_ch'], 'consume').returns(Promise.reject(new Error('Cannot consume queue')));
-        RegisterAnnotations.consumeQueue(this.queue, this.messageRouter);
+        RegisterAnnotations
+            .consumeQueue(this.queue, this.messageRouter)
+            .subscribe(_ => done(), err => done(err));
     }
 
     @test('- Should test consumeQueue when there is an error other than message not found')
