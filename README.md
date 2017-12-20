@@ -453,6 +453,10 @@ To set up your development environment:
 [Back to top](#table-of-contents)
 
 ## Change History
+* v1.2.2 (2017-12-20)
+    * Latest packages' versions.
+    * Fix queue dispatching in routing messages
+    * Documentation.
 * v1.2.1 (2017-11-23)
     * Latest packages' versions.
     * Fix routing messages

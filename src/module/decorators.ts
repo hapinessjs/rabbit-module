@@ -44,16 +44,16 @@ export const Exchange: CoreDecorator<ExchangeDecoratorInterface> = createDecorat
 export interface MessageDecoratorInterface {
     queue: Type<any>;
     exchange?: Type<any>;
-    isFallback?: boolean;
     routingKey?: string | RegExp;
     filter?: {
         [key: string]: string | RegExp;
     };
+    is_fallback?: boolean;
 }
 export const Message: CoreDecorator<MessageDecoratorInterface> = createDecorator<MessageDecoratorInterface>('Message', {
     queue: undefined,
     exchange: undefined,
-    isFallback: false,
     routingKey: undefined,
-    filter: undefined
+    filter: undefined,
+    is_fallback: false
 });
