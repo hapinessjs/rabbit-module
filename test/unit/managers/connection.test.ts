@@ -114,7 +114,7 @@ export class ConnectionUnitTest {
     testOpenConnectionErrorsAndThenOk(done) {
         const instance = new ConnectionManager({ retry: { delay: 100, maximum_attempts: 5 } });
         instance['_connect'] = () => <any>Promise.reject(new Error('Cannot connect'));
-        const connectStub = unit.stub(instance, '_connect');
+        const connectStub = unit.spy(instance, '_connect');
         setTimeout(() => {
             instance['_connect'] = () => <any>Promise.resolve(null);
         }, 300);

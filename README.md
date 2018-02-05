@@ -222,8 +222,8 @@ $ yarn add @hapiness/core @hapiness/rabbitmq rxjs
 ```javascript
 "dependencies": {
     "@hapiness/core": "^1.3.0",
-    "@hapiness/rabbitmq": "^1.2.2",
-    "rxjs": "^5.5.5",
+    "@hapiness/rabbitmq": "^1.2.3",
+    "rxjs": "^5.5.6",
     //...
 }
 //...
@@ -453,6 +453,10 @@ To set up your development environment:
 [Back to top](#table-of-contents)
 
 ## Change History
+* v1.2.3 (2018-02-05)
+    * Latest packages' versions.
+    * Fix typings
+    * Documentation.
 * v1.2.2 (2017-12-20)
     * Latest packages' versions.
     * Fix queue dispatching in routing messages

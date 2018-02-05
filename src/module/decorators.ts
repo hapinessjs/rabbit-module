@@ -5,7 +5,7 @@ import { ExchangeType } from './interfaces/index';
 
 export interface Bind {
     exchange: Type<any>;
-    pattern?: string | [string];
+    pattern?: string | string[];
 }
 
 export interface ChannelOptions {
