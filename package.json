@@ -78,24 +78,24 @@
     "lodash.pick": "^4.4.0"
   },
   "devDependencies": {
-    "@hapiness/config": "^1.1.0",
+    "@hapiness/config": "^1.1.1",
     "@hapiness/core": "^1.3.0",
     "@types/fs-extra": "^5.0.0",
     "coveralls": "^3.0.0",
     "fs-extra": "^5.0.0",
     "istanbul": "^1.1.0-alpha.1",
-    "mocha": "^4.0.1",
+    "mocha": "^5.0.0",
     "mocha-typescript": "^1.1.12",
     "rimraf": "^2.6.2",
-    "rxjs": "^5.5.5",
+    "rxjs": "^5.5.6",
     "ts-node": "^3.3.0",
-    "tslint": "^5.8.0",
-    "typescript": "^2.6.2",
+    "tslint": "^5.9.1",
+    "typescript": "^2.7.1",
     "unit.js": "^2.0.0"
   },
   "peerDependencies": {
     "@hapiness/core": "1.3.0",
-    "rxjs": "^5.5.5"
+    "rxjs": "^5.5.6"
   },
   "engines": {
     "node": ">=7.10.0"
