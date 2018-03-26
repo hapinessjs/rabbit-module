@@ -10,38 +10,40 @@ import { ChannelMock } from '../../mocks/Channel';
 @suite('- Unit ChannelService')
 export class ChannelServiceUnitTest {
     static stub_sendMessage: any;
+    private static connectionManager: ConnectionManagerMock;
+
+    static before() {
+        this.connectionManager = new ConnectionManagerMock();
+    }
 
     @test('- Should test new instance')
     testNew() {
-        const connectionManager = new ConnectionManagerMock();
-        const connectionService = new RabbitConnectionService(connectionManager);
+        const connectionService = new RabbitConnectionService(ChannelServiceUnitTest.connectionManager);
 
         const instance = new ChannelService(connectionService);
         unit.function(instance.create);
         unit.function(instance.upsert);
-        unit.object(instance['_channels']);
-        unit.object(instance['_channels']['default']).isInstanceOf(ChannelManager);
+        unit.function(instance.get);
+        unit.function(instance.getChannel);
     }
 
     @test('- Should test create channel')
     testCreateChannel(done) {
-        const connectionManager = new ConnectionManagerMock();
-        const connectionService = new RabbitConnectionService(connectionManager);
+        const connectionService = new RabbitConnectionService(ChannelServiceUnitTest.connectionManager);
 
         const instance = new ChannelService(connectionService);
         const obs = instance.create('publish');
         obs.subscribe(ch => {
-            unit.object(instance['_channels']);
-            unit.array(Object.keys(instance['_channels'])).is(['default', 'publish']);
+            unit.object(instance.getChannel('publish'));
             done();
         });
     }
 
     @test('- Should throw with no connection')
     testThrow() {
-        const connectionManager = new ConnectionManagerMock();
-        const connectionService = new RabbitConnectionService(connectionManager);
-        const stub = unit.stub(connectionManager, 'isConnected');
+        const connectionService = new RabbitConnectionService(ChannelServiceUnitTest.connectionManager);
+
+        const stub = unit.stub(ChannelServiceUnitTest.connectionManager, 'isConnected');
         stub.returns(false);
 
         unit
@@ -55,8 +57,7 @@ export class ChannelServiceUnitTest {
 
     @test('- Should test upsert channel')
     testUpsertChannel(done) {
-        const connectionManager = new ConnectionManagerMock();
-        const connectionService = new RabbitConnectionService(connectionManager);
+        const connectionService = new RabbitConnectionService(ChannelServiceUnitTest.connectionManager);
 
         const instance = new ChannelService(connectionService);
 
@@ -64,32 +65,32 @@ export class ChannelServiceUnitTest {
 
         pending.push(
             instance.upsert().map(ch => {
-                unit.object(instance['_channels']['default']).isInstanceOf(ChannelManager);
+                unit.object(instance.get()).isInstanceOf(ChannelManager);
             })
         );
 
         pending.push(
             instance.upsert('publish').map(ch => {
-                unit.object(instance['_channels']['publish']).isInstanceOf(ChannelManager);
+                unit.object(instance.get('publish')).isInstanceOf(ChannelManager);
             })
         );
 
         pending.push(
             instance.upsert('receive').map(ch => {
-                unit.object(instance['_channels']['receive']).isInstanceOf(ChannelManager);
+                unit.object(instance.get('receive')).isInstanceOf(ChannelManager);
             })
         );
 
         pending.push(
             instance.upsert('worker', { prefetch: 1 }).map(ch => {
-                unit.object(instance['_channels']['worker']).isInstanceOf(ChannelManager);
+                unit.object(instance.get('worker')).isInstanceOf(ChannelManager);
             })
         );
 
         pending.push(
             instance.create().map(ch => {
                 unit
-                    .object(instance['_channels']['default'])
+                    .object(instance.get('default'))
                     .isInstanceOf(ChannelManager)
                     .is(ch);
             })
@@ -100,8 +101,7 @@ export class ChannelServiceUnitTest {
 
     @test('- Should test get channel')
     testGetChannel(done) {
-        const connectionManager = new ConnectionManagerMock();
-        const connectionService = new RabbitConnectionService(connectionManager);
+        const connectionService = new RabbitConnectionService(ChannelServiceUnitTest.connectionManager);
 
         const instance = new ChannelService(connectionService);
 

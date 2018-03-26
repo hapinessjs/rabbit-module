@@ -1,10 +1,10 @@
+import { EventEmitter } from 'events';
 import { Observable } from 'rxjs';
 import * as querystring from 'querystring';
-import { ChannelManager } from './channel-manager';
 import { Channel as ChannelInterface, Connection, connect } from 'amqplib';
 import { RabbitMQConfigConnection } from '../interfaces';
 import { events } from '../events';
-import { EventEmitter } from 'events';
+import { ChannelStore } from './channel-store';
 
 export const REGEX_URI = /^amqp:\/\/([^@\n]+:[^@\n]+@)?(\w+)(:?)(\d{0,6})(\/[\w%]+)?(\?(?:&?[^=&\s]*=[^=&\s]*)+)?$/;
 
@@ -19,9 +19,11 @@ export class ConnectionManager extends EventEmitter {
     private _uri: string;
     private _connect: typeof connect;
     private _defaultPrefetch: number;
+    private _channelStore: ChannelStore;
 
     constructor(config?: RabbitMQConfigConnection) {
         super();
+        events.connection = this;
         this._connect = connect;
         this._connection = null;
         this._isConnecting = false;
@@ -49,6 +51,9 @@ export class ConnectionManager extends EventEmitter {
         }
 
         this.setDefaultPrefetch(this._options.default_prefetch);
+
+        // Create a channel store for this connection
+        this._channelStore = new ChannelStore(this);
     }
 
     setDefaultPrefetch(prefetch: number): ConnectionManager {
@@ -67,7 +72,6 @@ export class ConnectionManager extends EventEmitter {
 
     emitEvent(name: string, ...args) {
         this.emit(name, ...args);
-        events.connection.emit(name, ...args);
     }
 
     isConnecting(): boolean {
@@ -82,14 +86,16 @@ export class ConnectionManager extends EventEmitter {
         return Observable.of(null)
             .flatMap(() => {
                 debug('try to open connection ...');
+                debug(this._options.retry.delay);
                 return Observable.fromPromise(this._connect(this._uri));
             })
-            .retryWhen(errors =>
-                errors
+            .retryWhen(errors => {
+                errors.forEach(err => debug(err.message, err.stack));
+                return errors
                     .delay(this._options.retry.delay)
                     .take(this._options.retry.maximum_attempts)
                     .concat(Observable.throw(new Error('Retry limit exceeded')))
-            );
+            });
     }
 
     connect(): Observable<Connection> {
@@ -106,16 +112,16 @@ export class ConnectionManager extends EventEmitter {
         return obs
             .flatMap(con => {
                 this._connection = con;
+                const createChannelObs = this.channelStore.create('default');
                 this._handleDisconnection();
                 debug('connected, creating default channel ...');
                 this.emitEvent('opened', { connection: con });
-                const channel = new ChannelManager(this);
-                return channel.create(this._options.default_prefetch);
+                return createChannelObs;
             })
             .map(ch => {
                 this._isConnected = true;
                 this._isConnecting = false;
-                this._defaultChannel = ch;
+                this._defaultChannel = ch.getChannel();
                 debug('... channel created, RabbitMQ ready');
                 this.emitEvent('connected');
                 this.emitEvent('ready');
@@ -123,8 +129,14 @@ export class ConnectionManager extends EventEmitter {
             });
     }
 
+    close(): Observable<void> {
+        this._isConnected = false;
+        return Observable.fromPromise(this._connection.close());
+    }
+
     private _handleDisconnection(): void {
         this._connection.on('error', err => {
+            debug('rabbitmq connection error', err);
             this._isConnected = false;
             this._isConnecting = false;
             this.emitEvent('error', err);
@@ -141,5 +153,9 @@ export class ConnectionManager extends EventEmitter {
 
     get uri(): string {
         return this._uri;
+    }
+
+    get channelStore(): ChannelStore {
+        return this._channelStore;
     }
 }
