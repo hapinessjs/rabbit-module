@@ -62,7 +62,9 @@ export class MessageStoreTest {
         unit.bool(MessageStore.isShutdownRunning()).isFalse();
         MessageStore.addConsumer(<any>this.ch, 'consumer-1');
         MessageStore.addMessage(<any>{ uuid: 4 });
-        MessageStore.shutdown(this.connection).subscribe(() => done(), err => done(err));
+        MessageStore.shutdown(this.connection).subscribe(() => {
+            setTimeout(() => done(), 500);
+        }, err => done(err));
 
         // Trigger debug already running
         MessageStore.shutdown(this.connection).subscribe(() => {}, err => {});
@@ -79,7 +81,9 @@ export class MessageStoreTest {
         MessageStore['shutdownTimeoutMs'] = 500;
         MessageStore.addConsumer(<any>this.ch, 'consumer-1');
         MessageStore.addMessage(<any>{ uuid: 4 });
-        MessageStore.shutdown(this.connection).subscribe(() => done(new Error('Cannot succeed')), err => done());
+        MessageStore.shutdown(this.connection).subscribe(() => done(new Error('Cannot succeed')), err => {
+            setTimeout(() => done(), 500);
+        });
         setTimeout(() => {
             MessageStore.remove(<any>{ uuid: 4 });
         }, 510);
