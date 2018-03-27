@@ -71,7 +71,7 @@ export class RabbitMQExt implements OnExtensionLoad, OnModuleInstantiated, OnShu
 
     onShutdown(module, connection: ConnectionManager) {
         debug('kill received, starting shutdown procedure');
-        const exitObsersavle = MessageStore
+        const exitObservable = MessageStore
             .shutdown(connection)
             .do(() => {
                 debug('bye');
@@ -79,7 +79,7 @@ export class RabbitMQExt implements OnExtensionLoad, OnModuleInstantiated, OnShu
 
         return {
             priority: ExtensionShutdownPriority.IMPORTANT,
-            resolver: exitObsersavle
+            resolver: exitObservable
         };
     }
 }
