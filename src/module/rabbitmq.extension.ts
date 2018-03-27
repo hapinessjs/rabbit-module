@@ -5,7 +5,8 @@ import {
     ExtensionWithConfig,
     Extension,
     errorHandler,
-    ExtensionShutdownPriority
+    ExtensionShutdownPriority,
+    OnShutdown
  } from '@hapiness/core';
 import { Observable } from 'rxjs';
 
@@ -16,7 +17,7 @@ import { MessageStore } from './managers/message-store';
 
 const debug = require('debug')('hapiness:rabbitmq');
 
-export class RabbitMQExt implements OnExtensionLoad, OnModuleInstantiated {
+export class RabbitMQExt implements OnExtensionLoad, OnModuleInstantiated, OnShutdown {
     static ConnectionManager: typeof ConnectionManager;
 
     public static setConfig(config: RabbitMQConfig): ExtensionWithConfig {
