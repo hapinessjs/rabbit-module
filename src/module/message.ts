@@ -1,7 +1,8 @@
 import { Channel as ChannelInterface } from 'amqplib';
 import * as _has from 'lodash.has';
-import { MessageOptions } from './interfaces/index';
 import * as _pick from 'lodash.pick';
+import { MessageOptions } from './interfaces/index';
+import { events } from './events';
 
 export function sendMessage(ch: ChannelInterface, message: any, options: MessageOptions = {}): boolean {
     let { json } = Object.assign({ json: true }, options);
@@ -56,8 +57,19 @@ export function sendMessage(ch: ChannelInterface, message: any, options: Message
     }
 
     if (options.queue) {
+        events.message.emit('sent', {
+            publishOptions,
+            queue: options.queue,
+            content: message
+        });
         return ch.sendToQueue(options.queue, encodedMessage, publishOptions);
     } else if (options.exchange) {
+        events.message.emit('sent', {
+            publishOptions,
+            exchange: options.exchange,
+            routingKey: options.routingKey,
+            content: message
+        });
         return ch.publish(options.exchange, options.routingKey, encodedMessage, publishOptions);
     } else {
         throw new Error('Specify a queue or an exchange');

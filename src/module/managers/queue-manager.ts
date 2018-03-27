@@ -99,6 +99,7 @@ export class QueueManager {
 
         return Observable.fromPromise(
             this._ch.consume(this.getName(), message => {
+                events.message.emit('received', message);
                 const storeMessage = MessageStore.addMessage(message);
                 try {
                     const _message: RabbitMessage = options.decodeMessageContent
