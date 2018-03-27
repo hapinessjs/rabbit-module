@@ -4,7 +4,6 @@ import { MessageOptions, QueueInterface, ExchangeInterface } from '../interfaces
 import { sendMessage } from '../message';
 import { QueueDecoratorInterface, ExchangeDecoratorInterface } from '../decorators';
 import { Channel } from 'amqplib';
-import { MessageStore } from '..';
 
 @Injectable()
 export class MessageService {
@@ -14,7 +13,7 @@ export class MessageService {
     }
 
     canSendMessage(): boolean {
-        return this._channelService.connectionManager.isConnected() && !MessageStore.isShutdownRunning();
+        return this._channelService.connectionManager.isConnected();
     }
 
     sendToQueue(message, queue: typeof QueueInterface | string, options?: MessageOptions): boolean {
@@ -36,7 +35,7 @@ export class MessageService {
 
     send(message, options, ch?: Channel): boolean {
         if (!this.canSendMessage()) {
-            throw new Error('Cannot send message if no connection/while shutting down');
+            throw new Error('Cannot send message if no connection');
         }
 
         if (!ch) {

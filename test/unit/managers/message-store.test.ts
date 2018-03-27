@@ -82,7 +82,7 @@ export class MessageStoreTest {
         MessageStore.shutdown(this.connection).subscribe(() => done(new Error('Cannot succeed')), err => done());
         setTimeout(() => {
             MessageStore.remove(<any>{ uuid: 4 });
-        }, 501);
+        }, 510);
     }
 
     @test('- Shutdown w/o consumers')
