@@ -5,6 +5,6 @@ rabbitmq:
   login: xxxxx
   password: yyyyy
   retry:
-    delay: 200
+    delay: 5000
     maximum_attempts: -1
   default_prefetch: 10

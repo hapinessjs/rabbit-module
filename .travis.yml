@@ -2,6 +2,6 @@ language: node_js
 node_js:
   - "node"
 script:
-  - yarn run test
+  - npm test
 after_script:
-  - yarn run coveralls
+  - npm run coveralls

@@ -10,6 +10,7 @@ import { UserQueue, AnotherQueue } from '../../fixtures/Queues';
 import { UserExchange } from '../../fixtures/Exchanges';
 import { generateMessage } from '../../mocks/Message';
 import { extractMetadataByDecorator } from '@hapiness/core';
+import { MessageStore } from '../../../src';
 
 @suite('- Unit Queue')
 export class QueueServiceUnitTest {
@@ -321,6 +322,30 @@ export class QueueServiceUnitTest {
                 unit.number(instance['_ch']['reject']['callCount']).is(1);
                 done();
             });
+        });
+    }
+
+    @test('- Should test handleMessageError: reject if shutdown')
+    testHandlehandleMessageErrorShutdown(done) {
+        const messageStoreStub = unit.stub(MessageStore, 'isShutdownRunning').returns(true);
+        const instance = new QueueManager(<any>this.ch, this.anotherQueueWrapper);
+        const spy = unit.spy(instance, 'handleMessageError');
+        unit.value(instance.getName()).is('another.queue');
+        const dispatcher = Observable.of(() => Observable.throw(new Error('Nope')));
+
+        instance.assert().subscribe(_ => {
+            unit.bool(instance.isAsserted()).isTrue();
+            instance.consume((ch, message) => dispatcher);
+            const message1 = generateMessage(null, { exchange: instance.getName() });
+            this.ch.sendMessage(message1);
+
+            dispatcher.subscribe(err => {
+                unit.number(spy.callCount).is(1);
+                unit.object(spy.firstCall.args[1]).hasProperty('storeMessage');
+                unit.number(instance['_ch']['reject']['callCount']).is(1);
+                messageStoreStub.restore();
+                done();
+            }, err => done(err));
         });
     }
 

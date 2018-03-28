@@ -184,7 +184,6 @@ export class InvalidMessage {}
     }
 })
 export class UserCreatedActionMessage implements MessageInterface {
-
     onMessage(message: RabbitMessage) {
         return Observable.of({ ack: true });
     }

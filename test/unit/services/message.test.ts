@@ -55,4 +55,11 @@ export class MessageServiceUnitTest {
         stub.returns(true);
         instance.send({ foo: 'bar' }, { exchange: 'foo.bar.exchange' });
     }
+
+    @test('- Should throw if cannot sendMessage')
+    testCannotSendMessage() {
+        const instance = new MessageService(this.channelService);
+        unit.stub(instance, 'canSendMessage').returns(false);
+        unit.exception(() => instance.send({ foo: 'bar' }, { exchange: 'foo.bar.exchange' }));
+    }
 }

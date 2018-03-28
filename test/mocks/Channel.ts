@@ -27,7 +27,7 @@ export class ChannelMock {
 
     consume(queue, callback) {
         this.consumeCallback = callback;
-        return Promise.resolve(null);
+        return Promise.resolve(`consumer-${new Date().getTime()}`);
     }
 
     sendMessage(message) {
@@ -47,6 +47,18 @@ export class ChannelMock {
     }
 
     publish(exchange: string, routingKey: string, message: Buffer, options) {
+        return Promise.resolve(null);
+    }
+
+    close() {
+        return Promise.resolve(null);
+    }
+
+    deleteQueue() {
+        return Promise.resolve(null);
+    }
+
+    cancel() {
         return Promise.resolve(null);
     }
 }
