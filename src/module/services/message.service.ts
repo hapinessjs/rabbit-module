@@ -12,6 +12,10 @@ export class MessageService {
         this._sendMessage = sendMessage;
     }
 
+    canSendMessage(): boolean {
+        return this._channelService.connectionManager.isConnected();
+    }
+
     sendToQueue(message, queue: typeof QueueInterface | string, options?: MessageOptions): boolean {
         const ch = this._channelService.getChannel();
         const _options: MessageOptions = Object.assign({}, options);
@@ -30,6 +34,10 @@ export class MessageService {
     }
 
     send(message, options, ch?: Channel): boolean {
+        if (!this.canSendMessage()) {
+            throw new Error('Cannot send message if no connection');
+        }
+
         if (!ch) {
             ch = this._channelService.getChannel();
         }

@@ -1,13 +1,14 @@
 import * as _pick from 'lodash.pick';
 import { Observable } from 'rxjs';
 import { Channel as ChannelInterface, Replies } from 'amqplib';
+import { extractMetadataByDecorator, errorHandler } from '@hapiness/core';
 import { sendMessage, decodeJSONContent } from '../message';
 import { MessageResult, MessageOptions, RabbitMessage, QueueOptions, ConsumeOptions, QueueInterface } from '../interfaces';
 import { Bind } from '../decorators';
-import { extractMetadataByDecorator, errorHandler } from '@hapiness/core';
 import { ExchangeDecoratorInterface } from '../index';
 import { QueueWrapper } from './queue-wrapper';
 import { events } from '../events';
+import { MessageStore } from './message-store';
 
 const debug = require('debug')('hapiness:rabbitmq');
 export const QUEUE_OPTIONS = ['durable', 'exclusive', 'autoDelete', 'arguments'];
@@ -98,6 +99,8 @@ export class QueueManager {
 
         return Observable.fromPromise(
             this._ch.consume(this.getName(), message => {
+                events.message.emit('received', message);
+                const storeMessage = MessageStore.addMessage(message);
                 try {
                     const _message: RabbitMessage = options.decodeMessageContent
                         ? Object.assign({}, message, {
@@ -105,7 +108,7 @@ export class QueueManager {
                         })
                         : message;
 
-                    debug(`new message on queue ${this.getName()}`, _message);
+                    debug(`new message on queue ${this.getName()}`, _message.fields.deliveryTag);
 
                     return dispatcher(this._ch, _message).switchMap(dispatch => {
                         if (typeof dispatch !== 'function') {
@@ -115,23 +118,35 @@ export class QueueManager {
                             return dispatch();
                         }
                     }).subscribe(
-                        _ => this.handleMessageResult(message, _),
+                        _ => {
+                            this.handleMessageResult(message, _);
+                            MessageStore.remove(storeMessage);
+                        },
                         err => {
-                            (typeof options.errorHandler === 'function' ?
-                            options.errorHandler(err, message, this._ch) : errorHandler(err));
-                            this._ch.reject(message, false);
+                            this.handleMessageError(message, { storeMessage, options, err });
                         }
                     );
                 } catch (err) {
-                    (typeof options.errorHandler === 'function' ? options.errorHandler(err, message, this._ch) : errorHandler(err));
-                    events.queueManager.emit('consume_message_error', err, message, this._ch);
-                    this._ch.reject(message, false);
+                    this.handleMessageError(message, { storeMessage, options, err });
                 }
             })
-        );
+        )
+        .do(res => MessageStore.addConsumer(this._ch, res.consumerTag));
     }
 
-    handleMessageResult(message, result: MessageResult): void {
+    handleMessageError(message, { storeMessage, options, err }) {
+        if (MessageStore.isShutdownRunning()) {
+            this._ch.reject(message, true);
+        } else {
+            (typeof options.errorHandler === 'function' ?
+            options.errorHandler(err, message, this._ch) : errorHandler(err));
+            this._ch.reject(message, false);
+        }
+
+        MessageStore.remove(storeMessage);
+    }
+
+    handleMessageResult(message: RabbitMessage, result: MessageResult): void {
         if (result === false) {
             debug('dispatcher returned false, not acking/rejecting message');
             return;
@@ -139,10 +154,11 @@ export class QueueManager {
 
         if (typeof result === 'object' && result) {
             if (result.ack) {
-                debug('message ack');
+                debug('message ack', message.fields.consumerTag, message.fields.deliveryTag);
                 this._ch.ack(message);
                 return;
             } else if (result.reject) {
+                debug('message reject', message.fields.consumerTag, message.fields.deliveryTag);
                 this._ch.reject(message, result.requeue);
                 return;
             }

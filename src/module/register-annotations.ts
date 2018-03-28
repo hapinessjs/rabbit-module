@@ -1,13 +1,12 @@
 import { Observable } from 'rxjs';
-import { Type, CoreModule, extractMetadataByDecorator, errorHandler, DependencyInjection } from '@hapiness/core';
 import { Channel as ChannelInterface } from 'amqplib';
+import { Type, CoreModule, extractMetadataByDecorator, errorHandler, DependencyInjection } from '@hapiness/core';
 import { ConnectionManager } from './managers';
 import { QueueDecoratorInterface, ExchangeDecoratorInterface, MessageDecoratorInterface, ChannelOptions } from './decorators';
 import { QueueManager } from './managers';
 import { ExchangeManager, ExchangeWrapper, QueueWrapper } from './managers';
 import { MessageRouter } from './message-router';
 import { MessageInterface } from './interfaces';
-import { ChannelService } from './services/channel.service';
 
 const debug = require('debug')('hapiness:rabbitmq');
 
@@ -23,10 +22,11 @@ export class RegisterAnnotations {
             });
     }
 
-    public static getChannel(module: CoreModule, connection, channel: ChannelOptions): Observable<ChannelInterface> {
-        return DependencyInjection.instantiateComponent(ChannelService, module.di)
-            .switchMap(channelService =>
-                channelService.upsert(channel.key, { prefetch: channel.prefetch }).map(channelManager => channelManager.getChannel()));
+    public static getChannel(module: CoreModule, connection: ConnectionManager, channel: ChannelOptions): Observable<ChannelInterface> {
+        return connection
+            .channelStore
+            .upsert(channel.key, { prefetch: channel.prefetch, global: channel.global })
+            .map(ch => ch.getChannel());
     }
 
     public static buildExchanges(module, connection: ConnectionManager): Observable<any> {
@@ -86,13 +86,11 @@ export class RegisterAnnotations {
                         .toArray()
                         .switchMap((registeredMessages) => {
                             const _queue = queue.getQueue();
-                            const isConsumable$ = Observable.of(
-                                registeredMessages.length || typeof _queue['onMessage'] === 'function');
-                            return Observable.merge(
-                                isConsumable$.filter(_ => !_),
-                                isConsumable$.filter(_ => !!_)
-                                    .map(() => RegisterAnnotations.consumeQueue(queue, messageRouter))
-                            );
+                            if (registeredMessages.length || typeof _queue['onMessage'] === 'function') {
+                                return RegisterAnnotations.consumeQueue(queue, messageRouter);
+                            }
+
+                            return Observable.of(null);
                         });
                 })
         );
@@ -102,7 +100,8 @@ export class RegisterAnnotations {
         debug(`Creating dispatcher for queue ${queue.getName()}`);
         return queue.consume(
             (ch, message) => messageRouter.getDispatcher(ch, message))
-            .catch(err => Observable.of(errorHandler(err)));
+            .catch(err => Observable.of(errorHandler(err)))
+            .do(() => debug('consumed'));
     }
 
     public static registerMessages(module, queue: QueueManager, messageRouter: MessageRouter) {

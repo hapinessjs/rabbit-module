@@ -1,13 +1,23 @@
-import { CoreModule, OnExtensionLoad, OnModuleInstantiated, ExtensionWithConfig, Extension } from '@hapiness/core';
+import {
+    CoreModule,
+    OnExtensionLoad,
+    OnModuleInstantiated,
+    ExtensionWithConfig,
+    Extension,
+    errorHandler,
+    ExtensionShutdownPriority,
+    OnShutdown
+ } from '@hapiness/core';
 import { Observable } from 'rxjs';
 
 import { ConnectionManager } from './managers';
 import { RabbitMQConfig } from './interfaces/config';
-import { errorHandler } from '@hapiness/core';
+
+import { MessageStore } from './managers/message-store';
 
 const debug = require('debug')('hapiness:rabbitmq');
 
-export class RabbitMQExt implements OnExtensionLoad, OnModuleInstantiated {
+export class RabbitMQExt implements OnExtensionLoad, OnModuleInstantiated, OnShutdown {
     static ConnectionManager: typeof ConnectionManager;
 
     public static setConfig(config: RabbitMQConfig): ExtensionWithConfig {
@@ -58,8 +68,23 @@ export class RabbitMQExt implements OnExtensionLoad, OnModuleInstantiated {
 
         return RegisterAnnotations.bootstrap(module, connection);
     }
+
+    onShutdown(module, connection: ConnectionManager) {
+        debug('kill received, starting shutdown procedure');
+        const exitObservable = MessageStore
+            .shutdown(connection)
+            .do(() => {
+                debug('bye');
+            });
+
+        return {
+            priority: ExtensionShutdownPriority.IMPORTANT,
+            resolver: exitObservable
+        };
+    }
 }
 
 RabbitMQExt.ConnectionManager = ConnectionManager;
 
 import { RegisterAnnotations } from './register-annotations';
+

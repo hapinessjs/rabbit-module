@@ -11,6 +11,7 @@ export interface Bind {
 export interface ChannelOptions {
     key: string;
     prefetch?: number;
+    global?: boolean;
 }
 
 export interface QueueDecoratorInterface {

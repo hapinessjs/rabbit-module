@@ -453,6 +453,8 @@ To set up your development environment:
 [Back to top](#table-of-contents)
 
 ## Change History
+* v1.3.0 (2018-03-27)
+    * Add shutdown (SIGTERM/SIGINT) support
 * v1.2.3 (2018-02-05)
     * Latest packages' versions.
     * Fix typings
