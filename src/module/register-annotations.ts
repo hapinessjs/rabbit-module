@@ -92,7 +92,7 @@ export class RegisterAnnotations {
                 // Dont consume queue if there are no messages or consume() method on queue
                 .mergeMap(({ queue, _module }) => {
                     const messageRouter = new MessageRouter();
-                    return RegisterAnnotations.registerMessages(_module, queue, messageRouter)
+                    return RegisterAnnotations.registerMessages(modules, queue, messageRouter)
                         .defaultIfEmpty(null)
                         .filter(item => !!item)
                         .toArray()
@@ -117,15 +117,19 @@ export class RegisterAnnotations {
             .do(() => debug('consumed'));
     }
 
-    public static registerMessages(_module, queue: QueueManager, messageRouter: MessageRouter) {
-        return RegisterAnnotations.metadataFromDeclarations<MessageDecoratorInterface>(_module.declarations, 'Message')
+    public static registerMessages(modules: CoreModule[], queue: QueueManager, messageRouter: MessageRouter) {
+        debug('register messages');
+        return Observable.from(modules)
+            .flatMap(_module => RegisterAnnotations.metadataFromDeclarations<MessageDecoratorInterface>(_module.declarations, 'Message')
             .filter(metadata => {
-                return extractMetadataByDecorator<ExchangeDecoratorInterface>(metadata.data.queue, 'Queue').name === queue.getName();
+                const { name } = extractMetadataByDecorator<ExchangeDecoratorInterface>(metadata.data.queue, 'Queue');
+                debug('filtering message for queue', name, queue.getName());
+                return name === queue.getName();
             })
             .flatMap(_ => DependencyInjection.instantiateComponent(_.token, _module.di).map(instance => ({ instance, _ })))
             .map(({ instance, _ }) => {
                 return messageRouter.registerMessage(<MessageInterface>instance);
-            });
+            }));
     }
 
     /**
