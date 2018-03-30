@@ -7,15 +7,17 @@ import { QueueManager } from './managers';
 import { ExchangeManager, ExchangeWrapper, QueueWrapper } from './managers';
 import { MessageRouter } from './message-router';
 import { MessageInterface } from './interfaces';
+import { getModules } from './utils';
 
 const debug = require('debug')('hapiness:rabbitmq');
 
 export class RegisterAnnotations {
     public static bootstrap(module: CoreModule, connection: ConnectionManager) {
         debug('bootstrap extension');
-        return RegisterAnnotations.buildExchanges(module, connection)
+        const modules = getModules(module);
+        return RegisterAnnotations.buildExchanges(modules, connection)
             .toArray()
-            .flatMap(_ => RegisterAnnotations.buildQueues(module, connection))
+            .flatMap(_ => RegisterAnnotations.buildQueues(modules, connection))
             .toArray()
             .flatMap(_ => {
                 return Observable.of(null);
@@ -29,39 +31,49 @@ export class RegisterAnnotations {
             .map(ch => ch.getChannel());
     }
 
-    public static buildExchanges(module, connection: ConnectionManager): Observable<any> {
-        return Observable.of(module)
-            .filter(_ => !!_)
-            .flatMap(_ => RegisterAnnotations.metadataFromDeclarations<ExchangeDecoratorInterface>(_.declarations, 'Exchange'))
-            .flatMap(_ => DependencyInjection.instantiateComponent(_.token, module.di).map(instance => ({ instance, _ })))
-            .flatMap(({ instance, _ }) => {
-                const exchange = new ExchangeManager(connection.defaultChannel, new ExchangeWrapper(instance, _.data));
+    public static buildExchanges(modules: CoreModule[], connection: ConnectionManager): Observable<any> {
+        return Observable.from(modules)
+            .filter(_module => !!_module)
+            .flatMap(_module =>
+                RegisterAnnotations.metadataFromDeclarations<ExchangeDecoratorInterface>(_module.declarations, 'Exchange')
+                    .map(metadata => ({ metadata, _module }))
+            )
+            .flatMap(({ metadata, _module }) => DependencyInjection.instantiateComponent(metadata.token, _module.di)
+                .map(instance => ({ instance, _module, metadata })))
+            .flatMap(({ instance, _module, metadata }) => {
+                const exchange = new ExchangeManager(connection.defaultChannel, new ExchangeWrapper(instance, metadata.data));
                 return exchange.assert();
-            });
+            })
+            .toArray();
     }
 
-    public static buildQueues(module, connection: ConnectionManager): Observable<any> {
+    public static buildQueues(modules: CoreModule[], connection: ConnectionManager): Observable<any> {
         return (
-            Observable.of(module)
-                .filter(_ => !!_)
-                .flatMap(_ => RegisterAnnotations.metadataFromDeclarations<QueueDecoratorInterface>(_.declarations, 'Queue'))
-                .flatMap(_ => DependencyInjection.instantiateComponent(_.token, module.di).map(instance => ({ instance, _ })))
+            Observable.from(modules)
+                .filter(_module => !!_module)
+                .flatMap(_module =>
+                    RegisterAnnotations.metadataFromDeclarations<QueueDecoratorInterface>(_module.declarations, 'Queue')
+                        .map(metadata => ({ metadata, _module }))
+                )
+                .flatMap(({ metadata, _module }) =>
+                    DependencyInjection.instantiateComponent(metadata.token, _module.di)
+                        .map(instance => ({ instance, _module, metadata})))
                 // Assert queue
-                .mergeMap(({ instance, _ }) =>
-                    _.data.channel ?
+                .mergeMap(({ instance, _module, metadata }) =>
+                    metadata.data.channel ?
                         RegisterAnnotations
-                            .getChannel(module, connection, _.data.channel)
-                            .map(channel => ({ instance, _, channel }))
-                        : Observable.of({ instance, _, channel: connection.defaultChannel }))
-                .mergeMap(({ instance, _, channel }) => {
-                    const queue = new QueueManager(channel, new QueueWrapper(instance, _.data));
-                    return Observable.forkJoin(queue.assert(), Observable.of(_));
+                            .getChannel(_module, connection, metadata.data.channel)
+                            .map(channel => ({ instance, metadata, channel, _module })) :
+                        Observable.of({ instance, metadata, channel: connection.defaultChannel, _module }))
+                .mergeMap(({ instance, metadata, channel, _module }) => {
+                    const queue = new QueueManager(channel, new QueueWrapper(instance, metadata.data));
+                    return Observable.forkJoin(queue.assert(), Observable.of(metadata), Observable.of(_module));
                 })
                 // Bind queue
-                .mergeMap(([queue, _]) => {
-                    if (Array.isArray(_.data.binds)) {
+                .mergeMap(([queue, metadata, _module]) => {
+                    if (Array.isArray(metadata.data.binds)) {
                         return Observable.forkJoin(
-                            _.data.binds.map(bind => {
+                            metadata.data.binds.map(bind => {
                                 if (Array.isArray(bind.pattern)) {
                                     return Observable.forkJoin(bind.pattern.map(pattern => queue.bind(
                                         extractMetadataByDecorator<ExchangeDecoratorInterface>(bind.exchange, 'Exchange').name, pattern)));
@@ -70,17 +82,17 @@ export class RegisterAnnotations {
                                 return queue.bind(
                                     extractMetadataByDecorator<ExchangeDecoratorInterface>(bind.exchange, 'Exchange').name, bind.pattern
                                 );
-                            })).map(() => queue);
+                            })).map(() => ({ queue, _module }));
                     }
 
-                    return Observable.of(queue);
+                    return Observable.of(({ queue, _module }));
                 })
                 // Register messages related to queue
                 // Consume queue
                 // Dont consume queue if there are no messages or consume() method on queue
-                .mergeMap(queue => {
+                .mergeMap(({ queue, _module }) => {
                     const messageRouter = new MessageRouter();
-                    return RegisterAnnotations.registerMessages(module, queue, messageRouter)
+                    return RegisterAnnotations.registerMessages(_module, queue, messageRouter)
                         .defaultIfEmpty(null)
                         .filter(item => !!item)
                         .toArray()
@@ -93,6 +105,7 @@ export class RegisterAnnotations {
                             return Observable.of(null);
                         });
                 })
+                .toArray()
         );
     }
 
@@ -104,12 +117,12 @@ export class RegisterAnnotations {
             .do(() => debug('consumed'));
     }
 
-    public static registerMessages(module, queue: QueueManager, messageRouter: MessageRouter) {
-        return RegisterAnnotations.metadataFromDeclarations<MessageDecoratorInterface>(module.declarations, 'Message')
-            .filter(_ => {
-                return extractMetadataByDecorator<ExchangeDecoratorInterface>(_.data.queue, 'Queue').name === queue.getName();
+    public static registerMessages(_module, queue: QueueManager, messageRouter: MessageRouter) {
+        return RegisterAnnotations.metadataFromDeclarations<MessageDecoratorInterface>(_module.declarations, 'Message')
+            .filter(metadata => {
+                return extractMetadataByDecorator<ExchangeDecoratorInterface>(metadata.data.queue, 'Queue').name === queue.getName();
             })
-            .flatMap(_ => DependencyInjection.instantiateComponent(_.token, module.di).map(instance => ({ instance, _ })))
+            .flatMap(_ => DependencyInjection.instantiateComponent(_.token, _module.di).map(instance => ({ instance, _ })))
             .map(({ instance, _ }) => {
                 return messageRouter.registerMessage(<MessageInterface>instance);
             });
