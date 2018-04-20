@@ -1,7 +1,6 @@
 import { Observable } from 'rxjs';
-import { Channel as ChannelInterface } from 'amqplib';
 import { Type, CoreModule, extractMetadataByDecorator, errorHandler, DependencyInjection } from '@hapiness/core';
-import { ConnectionManager } from './managers';
+import { ConnectionManager, ChannelManager } from './managers';
 import { QueueDecoratorInterface, ExchangeDecoratorInterface, MessageDecoratorInterface, ChannelOptions } from './decorators';
 import { QueueManager } from './managers';
 import { ExchangeManager, ExchangeWrapper, QueueWrapper } from './managers';
@@ -24,11 +23,10 @@ export class RegisterAnnotations {
             });
     }
 
-    public static getChannel(module: CoreModule, connection: ConnectionManager, channel: ChannelOptions): Observable<ChannelInterface> {
+    public static getChannel(module: CoreModule, connection: ConnectionManager, channel: ChannelOptions): Observable<ChannelManager> {
         return connection
             .channelStore
-            .upsert(channel.key, { prefetch: channel.prefetch, global: channel.global })
-            .map(ch => ch.getChannel());
+            .upsert(channel.key, { prefetch: channel.prefetch, global: channel.global });
     }
 
     public static buildExchanges(modules: CoreModule[], connection: ConnectionManager): Observable<any> {
@@ -64,7 +62,7 @@ export class RegisterAnnotations {
                         RegisterAnnotations
                             .getChannel(_module, connection, metadata.data.channel)
                             .map(channel => ({ instance, metadata, channel, _module })) :
-                        Observable.of({ instance, metadata, channel: connection.defaultChannel, _module }))
+                        Observable.of({ instance, metadata, channel: connection.defaultChannelManager, _module }))
                 .mergeMap(({ instance, metadata, channel, _module }) => {
                     const queue = new QueueManager(channel, new QueueWrapper(instance, metadata.data));
                     return Observable.forkJoin(queue.assert(), Observable.of(metadata), Observable.of(_module));
