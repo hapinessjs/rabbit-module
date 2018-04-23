@@ -107,7 +107,7 @@ export class QueueManager {
         dispatcher,
         options,
         defaultDispatch
-    }) {
+    }): Observable<Replies.Consume> {
         const consumerChannel = this._ch.getChannel();
         return Observable.fromPromise(
 <<<<<<< HEAD
@@ -154,6 +154,8 @@ export class QueueManager {
         )
         .do(res => MessageStore.addConsumer(consumerChannel, res.consumerTag))
         .do(res => {
+            // If channel is closed, has en error or is reconnected the consumerTag is not valid
+            // and needs to be removed
             ['close', 'error', 'reconnected'].forEach(event => this._ch.once(event, () => {
                 debug('removing consumer', res.consumerTag);
                 MessageStore.removeConsumer(res.consumerTag);
@@ -165,8 +167,7 @@ export class QueueManager {
         message: RabbitMessage,
         { storeMessage, options, err, consumerChannel }:
         { storeMessage: StoreMessage,
-            // options: { errorHandler: (err: Error, message: RabbitMessage, ch: ChannelInterface) => {} },
-            options: any,
+            options: { errorHandler: (err: Error, message: RabbitMessage, ch: ChannelInterface) => {} },
             err: Error, consumerChannel: ChannelInterface }
     ) {
         if (MessageStore.isShutdownRunning()) {
