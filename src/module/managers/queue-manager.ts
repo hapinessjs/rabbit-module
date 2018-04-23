@@ -5,16 +5,16 @@ import { extractMetadataByDecorator, errorHandler } from '@hapiness/core';
 import { sendMessage, decodeJSONContent } from '../message';
 import { MessageResult, MessageOptions, RabbitMessage, QueueOptions, ConsumeOptions, QueueInterface } from '../interfaces';
 import { Bind } from '../decorators';
-import { ExchangeDecoratorInterface } from '../index';
+import { ExchangeDecoratorInterface, ChannelManager } from '../index';
 import { QueueWrapper } from './queue-wrapper';
 import { events } from '../events';
-import { MessageStore } from './message-store';
+import { MessageStore, StoreMessage } from './message-store';
 
 const debug = require('debug')('hapiness:rabbitmq');
 export const QUEUE_OPTIONS = ['durable', 'exclusive', 'autoDelete', 'arguments'];
 
 export class QueueManager {
-    private _ch: ChannelInterface;
+    private _ch: ChannelManager;
     private _name: string;
     private _queue: QueueInterface;
     private _binds: Array<Bind>;
@@ -22,7 +22,7 @@ export class QueueManager {
     private _isAsserted: boolean;
     private _options;
 
-    constructor(ch: ChannelInterface, queue: QueueWrapper | QueueOptions) {
+    constructor(ch: ChannelManager, queue: QueueWrapper | QueueOptions) {
         this._ch = ch;
 
         if (queue instanceof QueueWrapper) {
@@ -52,9 +52,8 @@ export class QueueManager {
     }
 
     assert(): Observable<QueueManager> {
-        const obs = Observable.fromPromise(this._ch.assertQueue(this.getName(), this._options));
         debug(`asserting queue ${this.getName()}...`);
-        return obs.map(_ => {
+        return Observable.fromPromise(this._ch.getChannel().assertQueue(this.getName(), this._options)).map(_ => {
             this._isAsserted = true;
             debug(`... queue ${this.getName()} asserted`);
 
@@ -97,8 +96,21 @@ export class QueueManager {
             dispatcher = (ch: ChannelInterface, message: RabbitMessage) => Observable.of(() => defaultDispatch(message, ch));
         }
 
+        // Reconsume queue when channel is reconnected
+        this._ch.on('reconnected', () => {
+            this._consume({ dispatcher, options, defaultDispatch });
+        });
+        return this._consume({ dispatcher, options, defaultDispatch });
+    }
+
+    private _consume({
+        dispatcher,
+        options,
+        defaultDispatch
+    }) {
+        const consumerChannel = this._ch.getChannel();
         return Observable.fromPromise(
-            this._ch.consume(this.getName(), message => {
+            this._ch.getChannel().consume(this.getName(), message => {
                 events.message.emit('received', message);
                 const storeMessage = MessageStore.addMessage(message);
                 try {
@@ -110,7 +122,7 @@ export class QueueManager {
 
                     debug(`new message on queue ${this.getName()}`, _message.fields.deliveryTag);
 
-                    return dispatcher(this._ch, _message).switchMap(dispatch => {
+                    return dispatcher(consumerChannel, _message).switchMap(dispatch => {
                         if (typeof dispatch !== 'function') {
                             debug('dispatcher did not returned a function, using defaultDispatcher');
                             return defaultDispatch(_message, this._ch);
@@ -119,34 +131,52 @@ export class QueueManager {
                         }
                     }).subscribe(
                         _ => {
-                            this.handleMessageResult(message, _);
+                            try {
+                                this.handleMessageResult(message, _, consumerChannel);
+                            } catch (err) {
+                                /* istanbul ignore next */
+                                events.queueManager.emit('ack_error', err);
+                            }
                             MessageStore.remove(storeMessage);
                         },
                         err => {
-                            this.handleMessageError(message, { storeMessage, options, err });
+                            this.handleMessageError(message, { storeMessage, options, err, consumerChannel });
                         }
                     );
                 } catch (err) {
-                    this.handleMessageError(message, { storeMessage, options, err });
+                    this.handleMessageError(message, { storeMessage, options, err, consumerChannel });
                 }
             })
         )
-        .do(res => MessageStore.addConsumer(this._ch, res.consumerTag));
+        .do(res => MessageStore.addConsumer(consumerChannel, res.consumerTag))
+        .do(res => {
+            ['close', 'error', 'reconnected'].forEach(event => this._ch.once(event, () => {
+                debug('removing consumer', res.consumerTag);
+                MessageStore.removeConsumer(res.consumerTag);
+            }));
+        });
     }
 
-    handleMessageError(message, { storeMessage, options, err }) {
+    handleMessageError(
+        message: RabbitMessage,
+        { storeMessage, options, err, consumerChannel }:
+        { storeMessage: StoreMessage,
+            // options: { errorHandler: (err: Error, message: RabbitMessage, ch: ChannelInterface) => {} },
+            options: any,
+            err: Error, consumerChannel: ChannelInterface }
+    ) {
         if (MessageStore.isShutdownRunning()) {
-            this._ch.reject(message, true);
+            consumerChannel.reject(message, true);
         } else {
             (typeof options.errorHandler === 'function' ?
-            options.errorHandler(err, message, this._ch) : errorHandler(err));
-            this._ch.reject(message, false);
+            options.errorHandler(err, message, consumerChannel) : errorHandler(err));
+            consumerChannel.reject(message, false);
         }
 
         MessageStore.remove(storeMessage);
     }
 
-    handleMessageResult(message: RabbitMessage, result: MessageResult): void {
+    handleMessageResult(message: RabbitMessage, result: MessageResult, consumerChannel: ChannelInterface): void {
         if (result === false) {
             debug('dispatcher returned false, not acking/rejecting message');
             return;
@@ -155,17 +185,17 @@ export class QueueManager {
         if (typeof result === 'object' && result) {
             if (result.ack) {
                 debug('message ack', message.fields.consumerTag, message.fields.deliveryTag);
-                this._ch.ack(message);
+                consumerChannel.ack(message);
                 return;
             } else if (result.reject) {
                 debug('message reject', message.fields.consumerTag, message.fields.deliveryTag);
-                this._ch.reject(message, result.requeue);
+                consumerChannel.reject(message, result.requeue);
                 return;
             }
         }
 
         debug('fallback message ack');
-        this._ch.ack(message);
+        consumerChannel.ack(message);
     }
 
     createBinds(binds?: Array<Bind>): Observable<Replies.Empty> {
@@ -193,11 +223,11 @@ export class QueueManager {
 
     bind(exchangeName, routingKey?: string): Observable<Replies.Empty> {
         debug(`binding queue ${this.getName()} on exchange ${exchangeName} with routingKey ${routingKey}`);
-        return Observable.fromPromise(this._ch.bindQueue(this.getName(), exchangeName, routingKey || ''));
+        return Observable.fromPromise(this._ch.getChannel().bindQueue(this.getName(), exchangeName, routingKey || ''));
     }
 
     check(): Observable<Replies.AssertQueue> {
-        return Observable.fromPromise(this._ch.checkQueue(this.getName()));
+        return Observable.fromPromise(this._ch.getChannel().checkQueue(this.getName()));
     }
 
     sendMessage(message: any, options: MessageOptions = {}): boolean {
@@ -208,6 +238,6 @@ export class QueueManager {
             options
         );
 
-        return sendMessage(this._ch, message, _options);
+        return sendMessage(this._ch.getChannel(), message, _options);
     }
 }

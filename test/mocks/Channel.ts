@@ -1,4 +1,5 @@
-export class ChannelMock {
+export const EventEmitter = require('events');
+export class ChannelMock extends EventEmitter {
     private consumeCallback;
 
     assertExchange() {

@@ -4,4 +4,5 @@
 --recursive
 --require ts-node/register
 --throw-deprecation
+-b
 --colors

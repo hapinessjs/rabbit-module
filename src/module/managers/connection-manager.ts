@@ -5,6 +5,7 @@ import { Channel as ChannelInterface, Connection, connect } from 'amqplib';
 import { RabbitMQConfigConnection } from '../interfaces';
 import { events } from '../events';
 import { ChannelStore } from './channel-store';
+import { ChannelManager } from './channel-manager';
 
 export const REGEX_URI = /^amqp:\/\/([^@\n]+:[^@\n]+@)?(\w+)(:?)(\d{0,6})(\/[\w%]+)?(\?(?:&?[^=&\s]*=[^=&\s]*)+)?$/;
 
@@ -14,7 +15,7 @@ export class ConnectionManager extends EventEmitter {
     private _connection: Connection;
     private _isConnecting: boolean;
     private _isConnected: boolean;
-    private _defaultChannel: ChannelInterface;
+    private _defaultChannel: ChannelManager;
     private _options: RabbitMQConfigConnection;
     private _uri: string;
     private _connect: typeof connect;
@@ -111,17 +112,17 @@ export class ConnectionManager extends EventEmitter {
         const obs = this.openConnection();
         return obs
             .flatMap(con => {
+                debug('connected, creating default channel ...');
                 this._connection = con;
                 const createChannelObs = this.channelStore.create('default');
                 this._handleDisconnection();
-                debug('connected, creating default channel ...');
                 this.emitEvent('opened', { connection: con });
                 return createChannelObs;
             })
             .map(ch => {
                 this._isConnected = true;
                 this._isConnecting = false;
-                this._defaultChannel = ch.getChannel();
+                this._defaultChannel = ch;
                 debug('... channel created, RabbitMQ ready');
                 this.emitEvent('connected');
                 this.emitEvent('ready');
@@ -148,6 +149,10 @@ export class ConnectionManager extends EventEmitter {
     }
 
     get defaultChannel(): ChannelInterface {
+        return this._defaultChannel.getChannel();
+    }
+
+    get defaultChannelManager(): ChannelManager {
         return this._defaultChannel;
     }
 

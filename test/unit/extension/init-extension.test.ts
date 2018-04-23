@@ -1,9 +1,8 @@
 import { test, suite } from 'mocha-typescript';
 import * as unit from 'unit.js';
 import { RegisterAnnotations } from '../../../src/module/register-annotations';
-import { QueueManager, QueueWrapper } from '../../../src/module/managers';
+import { QueueManager, QueueWrapper, ChannelManager } from '../../../src/module/managers';
 import { ChannelMock } from '../../mocks/Channel';
-import { Channel } from 'amqplib';
 import { MessageRouter } from '../../../src/module/message-router';
 import { UserQueue } from '../../fixtures/Queues';
 import { extractMetadataByDecorator } from '@hapiness/core';
@@ -17,14 +16,15 @@ import { ConnectionManagerMock } from '../../mocks/ConnectionManager';
 
 @suite('- Unit InitExtension')
 export class InitExtensionUnitTest {
-    private ch: Channel;
+    private ch: ChannelManager;
     private queueWrapper: QueueWrapper;
     private messageRouter: MessageRouter;
     private queue: QueueManager;
     private userQueue;
 
     before() {
-        this.ch = <any>new ChannelMock();
+        this.ch = new ChannelManager(<any>{connection: {}});
+        this.ch['ch'] = <any>new ChannelMock();
         this.userQueue = new UserQueue();
         this.queueWrapper = new QueueWrapper(this.userQueue, extractMetadataByDecorator(UserQueue, 'Queue'));
         this.messageRouter = new MessageRouter();
@@ -41,15 +41,15 @@ export class InitExtensionUnitTest {
 
     @test('- Should test consumeQueue when there is no message found')
     testConsumeQueue(done) {
-        unit.spy(this.queue['_ch'], 'consume');
+        const spy = unit.spy(this.queue['_ch'].getChannel(), 'consume');
         unit.function(RegisterAnnotations.consumeQueue);
         RegisterAnnotations.consumeQueue(this.queue, this.messageRouter);
-        unit.object(this.queue['_ch']['consume']['firstCall']);
-        unit.array(this.queue['_ch']['consume']['firstCall']['args']);
-        unit.string(this.queue['_ch']['consume']['firstCall']['args'][0]).is('user.queue');
-        unit.function(this.queue['_ch']['consume']['firstCall']['args'][1]);
+        unit.object(spy['firstCall']);
+        unit.array(spy['firstCall']['args']);
+        unit.string(spy['firstCall']['args'][0]).is('user.queue');
+        unit.function(spy['firstCall']['args'][1]);
         const message = generateMessage({ foo: 'bar' }, { exchange: 'user.queue' });
-        this.queue['_ch']['consume']['firstCall']['args'][1](message);
+        spy['firstCall']['args'][1](message);
         unit.number(this.userQueue.onMessage.callCount).is(1);
         done();
     }
@@ -57,7 +57,7 @@ export class InitExtensionUnitTest {
     @test('- Should test consumeQueue when queue.consume() returns error <>')
     testConsumeQueueSubscribeError(done) {
         unit.function(RegisterAnnotations.consumeQueue);
-        unit.stub(this.queue['_ch'], 'consume').returns(Promise.reject(new Error('Cannot consume queue')));
+        unit.stub(this.queue['_ch'].getChannel(), 'consume').returns(Promise.reject(new Error('Cannot consume queue')));
         RegisterAnnotations
             .consumeQueue(this.queue, this.messageRouter)
             .subscribe(_ => done(), err => done(err));
@@ -65,13 +65,13 @@ export class InitExtensionUnitTest {
 
     @test('- Should test consumeQueue when there is an error other than message not found')
     testConsumeQueueError() {
-        unit.spy(this.queue['_ch'], 'consume');
+        const spy = unit.spy(this.queue['_ch'].getChannel(), 'consume');
         unit.function(RegisterAnnotations.consumeQueue);
         RegisterAnnotations.consumeQueue(this.queue, this.messageRouter);
         const stub = unit.stub(this.messageRouter, 'getDispatcher');
         stub.returns(Observable.throw(new Error('Oops, something terrible happened!')));
         const message = generateMessage({ foo: 'bar' }, { exchange: 'user.queue' });
-        const obs: Subscription = this.queue['_ch']['consume']['firstCall']['args'][1](message);
+        const obs: Subscription = spy['firstCall']['args'][1](message);
         unit.object(stub.firstCall.returnValue).isInstanceOf(ErrorObservable);
         unit
             .object(stub.firstCall.returnValue.error)
