@@ -55,10 +55,10 @@ export class ChannelManager extends EventEmitter {
             return Observable.throw(new Error('Create channel before setting prefetch'));
         }
 
-        this._prefetch = this._prefetch;
-        this._global = this._global;
-
         const count = (_count === null || isNaN(_count)) ? this._connectionManager.getDefaultPrefetch() : _count;
+
+        this._prefetch = count;
+        this._global = global;
         return Observable.fromPromise(this.ch.prefetch(count, global));
     }
 
