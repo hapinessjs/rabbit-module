@@ -4,7 +4,7 @@ import * as unit from 'unit.js';
 import * as Message from '../../../src/module/message';
 import { Observable } from 'rxjs/Observable';
 
-import { QueueManager, QueueWrapper } from '../../../src/module/managers';
+import { QueueManager, QueueWrapper, ChannelManager } from '../../../src/module/managers';
 import { ChannelMock } from '../../mocks/Channel';
 import { UserQueue, AnotherQueue } from '../../fixtures/Queues';
 import { UserExchange } from '../../fixtures/Exchanges';
@@ -16,7 +16,7 @@ import { MessageStore } from '../../../src';
 export class QueueServiceUnitTest {
     static stub_sendMessage: any;
 
-    private ch;
+    private ch: ChannelManager;
     private userQueue;
     private anotherQueue;
     private userQueueWrapper;
@@ -31,13 +31,14 @@ export class QueueServiceUnitTest {
     }
 
     before() {
-        this.ch = new ChannelMock();
-        unit.spy(this.ch, 'assertQueue');
-        unit.spy(this.ch, 'bindQueue');
-        unit.spy(this.ch, 'checkQueue');
-        unit.spy(this.ch, 'consume');
-        unit.spy(this.ch, 'reject');
-        unit.spy(this.ch, 'ack');
+        this.ch = new ChannelManager(<any>{ connection: {}});
+        this.ch.setChannel(new ChannelMock());
+        unit.spy(this.ch.getChannel(), 'assertQueue');
+        unit.spy(this.ch.getChannel(), 'bindQueue');
+        unit.spy(this.ch.getChannel(), 'checkQueue');
+        unit.spy(this.ch.getChannel(), 'consume');
+        unit.spy(this.ch.getChannel(), 'reject');
+        unit.spy(this.ch.getChannel(), 'ack');
 
         this.userQueue = new UserQueue();
         unit.spy(this.userQueue, 'onAsserted');
@@ -108,12 +109,12 @@ export class QueueServiceUnitTest {
                 return instance.bind('another.exchange', 'baz');
             })
             .subscribe(_ => {
-                unit.number(this.ch.bindQueue['callCount']).is(5);
-                unit.array(this.ch.bindQueue['firstCall'].args).is(['user.queue', 'user.exchange', 'user.edited']);
-                unit.array(this.ch.bindQueue['secondCall'].args).is(['user.queue', 'user.exchange', 'user.created']);
-                unit.array(this.ch.bindQueue['thirdCall'].args).is(['user.queue', 'user.exchange', 'user.deleted']);
-                unit.array(this.ch.bindQueue.getCalls()[3].args).is(['user.queue', 'user.exchange', '']);
-                unit.array(this.ch.bindQueue.getCalls()[4].args).is(['user.queue', 'another.exchange', 'baz']);
+                unit.number(this.ch.getChannel().bindQueue['callCount']).is(5);
+                unit.array(this.ch.getChannel().bindQueue['firstCall'].args).is(['user.queue', 'user.exchange', 'user.edited']);
+                unit.array(this.ch.getChannel().bindQueue['secondCall'].args).is(['user.queue', 'user.exchange', 'user.created']);
+                unit.array(this.ch.getChannel().bindQueue['thirdCall'].args).is(['user.queue', 'user.exchange', 'user.deleted']);
+                unit.array(this.ch.getChannel().bindQueue['getCalls']()[3].args).is(['user.queue', 'user.exchange', '']);
+                unit.array(this.ch.getChannel().bindQueue['getCalls']()[4].args).is(['user.queue', 'another.exchange', 'baz']);
                 done();
             });
     }
@@ -133,9 +134,9 @@ export class QueueServiceUnitTest {
                 return anotherInstance.createBinds();
             })
             .subscribe(_ => {
-                unit.number(this.ch.bindQueue['callCount']).is(2);
-                unit.array(this.ch.bindQueue['firstCall'].args).is(['user.queue', 'user.exchange', 'foo']);
-                unit.array(this.ch.bindQueue['secondCall'].args).is(['user.queue', 'user.exchange', 'bar']);
+                unit.number(this.ch.getChannel().bindQueue['callCount']).is(2);
+                unit.array(this.ch.getChannel().bindQueue['firstCall'].args).is(['user.queue', 'user.exchange', 'foo']);
+                unit.array(this.ch.getChannel().bindQueue['secondCall'].args).is(['user.queue', 'user.exchange', 'bar']);
                 done();
             });
     }
@@ -160,20 +161,42 @@ export class QueueServiceUnitTest {
                 return instance.consume();
             })
             .subscribe(_ => {
-                unit.bool(this.ch.consume['calledOnce']).isTrue();
-                unit.string(this.ch.consume['firstCall'].args[0]).is(instance.getName());
-                unit.function(this.ch.consume['firstCall'].args[1]);
+                unit.bool(this.ch.getChannel().consume['calledOnce']).isTrue();
+                unit.string(this.ch.getChannel().consume['firstCall'].args[0]).is(instance.getName());
+                unit.function(this.ch.getChannel().consume['firstCall'].args[1]);
 
                 const message1 = generateMessage({ hello: 'world', result: { ack: true } }, { exchange: instance.getName() });
                 const message2 = generateMessage({ hello: 'world', result: false }, { exchange: instance.getName() });
                 const message3 = generateMessage({ hello: 'world', result: { reject: true } }, { exchange: instance.getName() });
                 const message4 = generateMessage({ hello: 'world', result: {} }, { exchange: instance.getName() });
-                this.ch.sendMessage(message1);
-                this.ch.sendMessage(message2);
-                this.ch.sendMessage(message3);
-                this.ch.sendMessage(message4);
+                this.ch.getChannel()['sendMessage'](message1);
+                this.ch.getChannel()['sendMessage'](message2);
+                this.ch.getChannel()['sendMessage'](message3);
+                this.ch.getChannel()['sendMessage'](message4);
                 unit.number(this.userQueue.onMessage['callCount']).is(4);
                 done();
+            });
+    }
+
+    @test('- Should test channel reconnect')
+    testReconnect(done) {
+        const instance = new QueueManager(<any>this.ch, this.userQueueWrapper);
+        unit.value(instance.getName()).is('user.queue');
+        const obs = instance.assert();
+        obs
+            .flatMap(_ => {
+                unit.bool(instance.isAsserted()).isTrue();
+                return instance.consume();
+            })
+            .subscribe(_ => {
+                unit.bool(this.ch.getChannel().consume['calledOnce']).isTrue();
+                unit.string(this.ch.getChannel().consume['firstCall'].args[0]).is(instance.getName());
+                unit.function(this.ch.getChannel().consume['firstCall'].args[1]);
+
+                setTimeout(() => {
+                    this.ch.emit('reconnected');
+                    done();
+                }, 1000);
             });
     }
 
@@ -192,15 +215,15 @@ export class QueueServiceUnitTest {
                 return instance.consume(dispatcher, { decodeMessageContent: <any>'', errorHandler });
             })
             .subscribe(_ => {
-                unit.bool(this.ch.consume['calledOnce']).isTrue();
-                unit.string(this.ch.consume['firstCall'].args[0]).is(instance.getName());
-                unit.function(this.ch.consume['firstCall'].args[1]);
+                unit.bool(this.ch.getChannel().consume['calledOnce']).isTrue();
+                unit.string(this.ch.getChannel().consume['firstCall'].args[0]).is(instance.getName());
+                unit.function(this.ch.getChannel().consume['firstCall'].args[1]);
 
                 const message1 = generateMessage({ hello: 'world', result: { ack: true } }, { exchange: instance.getName() });
-                this.ch.sendMessage(message1);
+                this.ch.getChannel()['sendMessage'](message1);
                 unit.number(dispatcher.callCount).is(1);
                 unit.number(errorHandler.callCount).is(1);
-                unit.array(errorHandler.firstCall.args).is([err, message1, this.ch]);
+                unit.array(errorHandler.firstCall.args).is([err, message1, this.ch.getChannel()]);
                 done();
             });
     }
@@ -219,12 +242,12 @@ export class QueueServiceUnitTest {
                 return instance.consume(dispatcher, { decodeMessageContent: <any>'' });
             })
             .subscribe(_ => {
-                unit.bool(this.ch.consume['calledOnce']).isTrue();
-                unit.string(this.ch.consume['firstCall'].args[0]).is(instance.getName());
-                unit.function(this.ch.consume['firstCall'].args[1]);
+                unit.bool(this.ch.getChannel().consume['calledOnce']).isTrue();
+                unit.string(this.ch.getChannel().consume['firstCall'].args[0]).is(instance.getName());
+                unit.function(this.ch.getChannel().consume['firstCall'].args[1]);
 
                 const message1 = generateMessage({ hello: 'world', result: { ack: true } }, { exchange: instance.getName() });
-                this.ch.sendMessage(message1);
+                this.ch.getChannel()['sendMessage'](message1);
                 unit.number(dispatcher.callCount).is(1);
                 done();
             });
@@ -248,18 +271,18 @@ export class QueueServiceUnitTest {
                 return instance.consume(spy, { decodeMessageContent: false });
             })
             .subscribe(_ => {
-                unit.bool(this.ch.consume['calledOnce']).isTrue();
-                unit.string(this.ch.consume['firstCall'].args[0]).is(instance.getName());
-                unit.function(this.ch.consume['firstCall'].args[1]);
+                unit.bool(this.ch.getChannel().consume['calledOnce']).isTrue();
+                unit.string(this.ch.getChannel().consume['firstCall'].args[0]).is(instance.getName());
+                unit.function(this.ch.getChannel().consume['firstCall'].args[1]);
 
                 const message1 = generateMessage({ hello: 'world', result: { ack: true } }, { exchange: instance.getName() });
                 const message2 = generateMessage({ hello: 'world', result: false }, { exchange: instance.getName() });
                 const message3 = generateMessage({ hello: 'world', result: { reject: true } }, { exchange: instance.getName() });
                 const message4 = generateMessage({ hello: 'world', result: {} }, { exchange: instance.getName() });
-                this.ch.sendMessage(message1);
-                this.ch.sendMessage(message2);
-                this.ch.sendMessage(message3);
-                this.ch.sendMessage(message4);
+                this.ch.getChannel()['sendMessage'](message1);
+                this.ch.getChannel()['sendMessage'](message2);
+                this.ch.getChannel()['sendMessage'](message3);
+                this.ch.getChannel()['sendMessage'](message4);
                 unit.number(spy['callCount']).is(4);
                 done();
             });
@@ -275,7 +298,7 @@ export class QueueServiceUnitTest {
             unit.bool(instance.isAsserted()).isTrue();
             instance.consume();
             const message1 = generateMessage({ hello: 'world', result: { ack: true } }, { exchange: instance.getName() });
-            this.ch.sendMessage(message1);
+            this.ch.getChannel()['sendMessage'](message1);
             done();
         });
     }
@@ -291,13 +314,13 @@ export class QueueServiceUnitTest {
             unit.bool(instance.isAsserted()).isTrue();
             instance.consume((ch, message) => dispatcher);
             const message1 = generateMessage(null, { exchange: instance.getName() });
-            this.ch.sendMessage(message1);
+            this.ch.getChannel()['sendMessage'](message1);
 
             dispatcher.subscribe(r => {
                 unit.number(spy.callCount).is(1);
                 unit.bool(spy.firstCall.args[1]).isFalse();
-                unit.number(instance['_ch']['ack']['callCount']).is(0);
-                unit.number(instance['_ch']['reject']['callCount']).is(0);
+                unit.number(instance['_ch'].getChannel()['ack']['callCount']).is(0);
+                unit.number(instance['_ch'].getChannel()['reject']['callCount']).is(0);
                 done();
             });
         });
@@ -314,12 +337,12 @@ export class QueueServiceUnitTest {
             unit.bool(instance.isAsserted()).isTrue();
             instance.consume((ch, message) => dispatcher);
             const message1 = generateMessage(null, { exchange: instance.getName() });
-            this.ch.sendMessage(message1);
+            this.ch.getChannel()['sendMessage'](message1);
 
             dispatcher.subscribe(r => {
                 unit.number(spy.callCount).is(1);
                 unit.object(spy.firstCall.args[1]).is({ reject: true });
-                unit.number(instance['_ch']['reject']['callCount']).is(1);
+                unit.number(instance['_ch'].getChannel()['reject']['callCount']).is(1);
                 done();
             });
         });
@@ -337,12 +360,12 @@ export class QueueServiceUnitTest {
             unit.bool(instance.isAsserted()).isTrue();
             instance.consume((ch, message) => dispatcher);
             const message1 = generateMessage(null, { exchange: instance.getName() });
-            this.ch.sendMessage(message1);
+            this.ch.getChannel()['sendMessage'](message1);
 
             dispatcher.subscribe(err => {
                 unit.number(spy.callCount).is(1);
                 unit.object(spy.firstCall.args[1]).hasProperty('storeMessage');
-                unit.number(instance['_ch']['reject']['callCount']).is(1);
+                unit.number(instance['_ch'].getChannel()['reject']['callCount']).is(1);
                 messageStoreStub.restore();
                 done();
             }, err => done(err));
@@ -360,12 +383,12 @@ export class QueueServiceUnitTest {
             unit.bool(instance.isAsserted()).isTrue();
             instance.consume((ch, message) => dispatcher);
             const message1 = generateMessage(null, { exchange: instance.getName() });
-            this.ch.sendMessage(message1);
+            this.ch.getChannel()['sendMessage'](message1);
 
             dispatcher.subscribe(r => {
                 unit.number(spy.callCount).is(1);
                 unit.object(spy.firstCall.args[1]).is({ foo: 'bar' });
-                unit.number(instance['_ch']['ack']['callCount']).is(1);
+                unit.number(instance['_ch'].getChannel()['ack']['callCount']).is(1);
                 done();
             });
         });
@@ -382,12 +405,12 @@ export class QueueServiceUnitTest {
             unit.bool(instance.isAsserted()).isTrue();
             instance.consume((ch, message) => dispatcher);
             const message1 = generateMessage(null, { exchange: instance.getName() });
-            this.ch.sendMessage(message1);
+            this.ch.getChannel()['sendMessage'](message1);
 
             dispatcher.subscribe(r => {
                 unit.number(spy.callCount).is(1);
                 unit.value(spy.firstCall.args[1]).is(null);
-                unit.number(instance['_ch']['ack']['callCount']).is(1);
+                unit.number(instance['_ch'].getChannel()['ack']['callCount']).is(1);
                 done();
             });
         });
@@ -405,7 +428,7 @@ export class QueueServiceUnitTest {
             instance.consume(null, { errorHandler: _errorHandler, force_json_decode: true });
             const message1 = generateMessage(null, { exchange: instance.getName() });
             message1.content = Buffer.from('xaxa');
-            this.ch.sendMessage(message1);
+            this.ch.getChannel()['sendMessage'](message1);
             unit.number(_errorHandler.callCount).is(1);
             unit.object(_errorHandler.firstCall.args[0]).isInstanceOf(Error).hasProperty('message', 'Cannot parse JSON message');
             done();
@@ -424,7 +447,7 @@ export class QueueServiceUnitTest {
             instance.consume(null, { force_json_decode: true });
             const message1 = generateMessage(null, { exchange: instance.getName() });
             message1.content = Buffer.from('xaxa');
-            this.ch.sendMessage(message1);
+            this.ch.getChannel()['sendMessage'](message1);
             done();
         });
     }
@@ -434,7 +457,7 @@ export class QueueServiceUnitTest {
         const instance = new QueueManager(<any>this.ch, this.userQueueWrapper);
         instance.sendMessage({ hello: 'world' });
         unit.bool(QueueServiceUnitTest.stub_sendMessage.calledOnce).isTrue();
-        unit.array(QueueServiceUnitTest.stub_sendMessage.firstCall.args).is([this.ch, { hello: 'world' }, { queue: 'user.queue' }]);
+        unit.array(QueueServiceUnitTest.stub_sendMessage.firstCall.args).is([this.ch.getChannel(), { hello: 'world' }, { queue: 'user.queue' }]);
     }
 
     @test('- Test check queue')
@@ -442,8 +465,8 @@ export class QueueServiceUnitTest {
         const instance = new QueueManager(<any>this.ch, this.userQueueWrapper);
         const obs = instance.check();
         obs.subscribe(_ => {
-            unit.bool(this.ch.checkQueue['calledOnce']).isTrue();
-            unit.array(this.ch.checkQueue['firstCall'].args).is(['user.queue']);
+            unit.bool(this.ch.getChannel().checkQueue['calledOnce']).isTrue();
+            unit.array(this.ch.getChannel().checkQueue['firstCall'].args).is(['user.queue']);
             done();
         });
     }
