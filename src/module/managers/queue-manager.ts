@@ -110,11 +110,7 @@ export class QueueManager {
     }): Observable<Replies.Consume> {
         const consumerChannel = this._ch.getChannel();
         return Observable.fromPromise(
-<<<<<<< HEAD
             this._ch.getChannel().consume(this.getName(), message => {
-=======
-            this._ch.consume(this.getName(), message => {
->>>>>>> d367cd4... Coverage 100%, add events for message receive, send
                 events.message.emit('received', message);
                 const storeMessage = MessageStore.addMessage(message);
                 try {
