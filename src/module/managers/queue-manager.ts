@@ -134,6 +134,7 @@ export class QueueManager {
                             try {
                                 this.handleMessageResult(message, _, consumerChannel);
                             } catch (err) {
+                                /* istanbul ignore next */
                                 events.queueManager.emit('ack_error', err);
                             }
                             MessageStore.remove(storeMessage);

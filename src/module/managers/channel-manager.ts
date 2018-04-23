@@ -44,6 +44,8 @@ export class ChannelManager extends EventEmitter {
             this.ch.on('close', err => this.defaultErrorHandler(err, 'close'));
             this._key = new Date();
             debug('channel created');
+            this._isConnected = true;
+            this.emit('created');
             return ch;
         }).switchMap(ch => this.setPrefetch(this._prefetch, this._global).map(() => ch));
     }
@@ -76,7 +78,7 @@ export class ChannelManager extends EventEmitter {
 
     private defaultErrorHandler(err, origin) {
         this._isConnected = false;
-        if (!this._reconnecting && origin === 'close' && err && err.code !== 404 && this.canCreateChannel()) {
+        if (!this._reconnecting && origin === 'error' && err && err.code !== 404 && this.canCreateChannel()) {
           this._reconnecting = true;
           debug(`recreating channel after ${origin} event`, { err });
           this.create()
