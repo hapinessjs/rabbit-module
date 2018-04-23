@@ -21,6 +21,7 @@ export class ConnectionManager extends EventEmitter {
     private _connect: typeof connect;
     private _defaultPrefetch: number;
     private _channelStore: ChannelStore;
+    private _isSIGTERMReceived: boolean;
 
     constructor(config?: RabbitMQConfigConnection) {
         super();
@@ -50,6 +51,10 @@ export class ConnectionManager extends EventEmitter {
             const params = this._options.params ? `?${querystring.stringify(this._options.params)}` : '';
             this._uri = `amqp://${credentials}${host}:${port}${vhost}${params}`;
         }
+
+        // Will block new connection if SIGTERM is received
+        process.once('SIGTERM', () => this._isSIGTERMReceived = true);
+        process.once('SIGINT', () => this._isSIGTERMReceived = true);
 
         this.setDefaultPrefetch(this._options.default_prefetch);
 
@@ -101,6 +106,10 @@ export class ConnectionManager extends EventEmitter {
 
     connect(): Observable<Connection> {
         if (this.isConnecting()) {
+            return Observable.of(null);
+        }
+
+        if (this._isSIGTERMReceived) {
             return Observable.of(null);
         }
 
