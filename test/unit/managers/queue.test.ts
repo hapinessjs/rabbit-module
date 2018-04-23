@@ -457,7 +457,8 @@ export class QueueServiceUnitTest {
         const instance = new QueueManager(<any>this.ch, this.userQueueWrapper);
         instance.sendMessage({ hello: 'world' });
         unit.bool(QueueServiceUnitTest.stub_sendMessage.calledOnce).isTrue();
-        unit.array(QueueServiceUnitTest.stub_sendMessage.firstCall.args).is([this.ch.getChannel(), { hello: 'world' }, { queue: 'user.queue' }]);
+        unit.array(QueueServiceUnitTest.stub_sendMessage.firstCall.args)
+            .is([this.ch.getChannel(), { hello: 'world' }, { queue: 'user.queue' }]);
     }
 
     @test('- Test check queue')
