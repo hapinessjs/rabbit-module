@@ -17,16 +17,15 @@ export class ChannelStore {
     public create(key = 'default', { prefetch, global }: CreateChannelOptions = {}): Observable<ChannelManager> {
         const existing = this.get(key);
 
-        if (existing) {
+        if (existing && existing.isConnected()) {
             debug('channel existing returning', key);
             return Observable.of(existing);
         }
 
         debug('create channel', key, prefetch, global);
-        const channel = new ChannelManager(this._connectionManager);
+        const channel = new ChannelManager(this._connectionManager, prefetch, global);
         return channel
             .create()
-            .flatMap(ch => (isNaN(prefetch) ? Observable.of(ch) : channel.prefetch(prefetch, global).map(_ => ch)))
             .map(ch => {
                 this._channels[key] = channel;
                 return channel;
@@ -35,7 +34,7 @@ export class ChannelStore {
 
     public upsert(key = 'default', { prefetch, global }: CreateChannelOptions = {}): Observable<ChannelManager> {
         const ch = this.get(key);
-        if (!ch) {
+        if (!ch || !ch.isConnected()) {
             return this.create(key, { prefetch, global });
         }
 

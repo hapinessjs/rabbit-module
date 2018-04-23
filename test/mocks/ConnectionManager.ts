@@ -13,7 +13,7 @@ export class ConnectionManagerMock extends ConnectionManager {
         this['_connection'] = <any>new RabbitConnectionMock();
         const ch = new ChannelManager(this);
         ch.setChannel(<any>new ChannelMock());
-        this['_defaultChannel'] = ch.getChannel();
+        this['_defaultChannel'] = ch;
         this.channelStore['_channels']['default'] = ch;
     }
 
