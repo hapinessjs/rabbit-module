@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { Channel as ChannelInterface } from 'amqplib';
 import { RabbitMessage } from '../interfaces/rabbit-message';
 import { Config } from '@hapiness/config';
+import { ConnectionManager } from './connection-manager';
 
 const debug = require('debug')('hapiness:rabbitmq');
 
@@ -78,7 +79,7 @@ export class MessageStoreClass extends EventEmitter {
         this.shutdown_running = false;
     }
 
-    shutdown(connection): Observable<any> {
+    shutdown(connection: ConnectionManager): Observable<any> {
         if (this.shutdown_running) {
             debug('shutdown already running');
             return Observable.of(null);

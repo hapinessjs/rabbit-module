@@ -32,7 +32,7 @@ export class ChannelManager extends EventEmitter {
         return this._global;
     }
 
-    public canCreateChannel() {
+    public canCreateChannel(): boolean {
         return this._connectionManager.isConnected() && !this._connectionManager.isConnecting() && !MessageStore.isShutdownRunning();
     }
 
