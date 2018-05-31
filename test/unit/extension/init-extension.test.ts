@@ -23,7 +23,8 @@ export class InitExtensionUnitTest {
     private userQueue;
 
     before() {
-        this.ch = new ChannelManager(<any>{connection: {}});
+        const connection = new ConnectionManagerMock();
+        this.ch = new ChannelManager(connection);
         this.ch['ch'] = <any>new ChannelMock();
         this.userQueue = new UserQueue();
         this.queueWrapper = new QueueWrapper(this.userQueue, extractMetadataByDecorator(UserQueue, 'Queue'));

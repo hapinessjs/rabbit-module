@@ -22,6 +22,9 @@ export class ChannelManager extends EventEmitter {
         this._connection = connectionManager.connection;
         this._prefetch = prefetch;
         this._global = global;
+        this._connectionManager.on('error', () => {
+            this._isConnected = false;
+        });
     }
 
     get prefetch(): number {
