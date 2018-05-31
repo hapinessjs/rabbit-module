@@ -7,8 +7,6 @@ import { events } from '../events';
 import { ChannelStore } from './channel-store';
 import { ChannelManager } from './channel-manager';
 
-export const REGEX_URI = /^amqp:\/\/([^@\n]+:[^@\n]+@)?(\w+)(:?)(\d{0,6})(\/[\w%]+)?(\?(?:&?[^=&\s]*=[^=&\s]*)+)?$/;
-
 const debug = require('debug')('hapiness:rabbitmq');
 
 export class ConnectionManager extends EventEmitter {
@@ -38,10 +36,6 @@ export class ConnectionManager extends EventEmitter {
         }
 
         if (this._options.uri) {
-            if (!this._options.uri.match(REGEX_URI)) {
-                throw new Error('Invalid uri');
-            }
-
             this._uri = this._options.uri;
         } else {
             const port = this._options.port || 5672;
@@ -53,7 +47,9 @@ export class ConnectionManager extends EventEmitter {
         }
 
         // Will block new connection if SIGTERM is received
+        /* istanbul ignore next */
         process.once('SIGTERM', () => this._isSIGTERMReceived = true);
+        /* istanbul ignore next */
         process.once('SIGINT', () => this._isSIGTERMReceived = true);
 
         this.setDefaultPrefetch(this._options.default_prefetch);
@@ -109,6 +105,7 @@ export class ConnectionManager extends EventEmitter {
             return Observable.of(null);
         }
 
+        /* istanbul ignore next */
         if (this._isSIGTERMReceived) {
             return Observable.of(null);
         }

@@ -49,34 +49,6 @@ export class ConnectionUnitTest {
         });
     }
 
-    @test(' - Test options.uri')
-    testOptionsUri() {
-        const urisOk = [
-            'amqp://localhost',
-            'amqp://hello:world@localhost',
-            'amqp://hello:world@localhost:98798',
-            'amqp://hello:world@localhost:98798/vhost',
-            'amqp://hello:world@localhost:98798/%2Fvhost',
-            'amqp://hello:world@localhost:98798'
-        ];
-
-        const urisNOk = ['not_good', ' amqp://localhost', 'amqp://xxx:zzzzz@', 'amqp://xxx:zzzzz#/322d'];
-
-        urisOk.forEach(uri => {
-            const instance = new ConnectionManager({ uri });
-            unit.object(instance).isInstanceOf(ConnectionManager);
-        });
-
-        urisNOk.forEach(uri => {
-            unit
-                .exception(_ => {
-                    unit.when('Invalid uri', new ConnectionManager({ uri }));
-                })
-                .isInstanceOf(Error)
-                .hasProperty('message', 'Invalid uri');
-        });
-    }
-
     @test(' - Test options')
     testOptions() {
         const options = [
@@ -84,6 +56,7 @@ export class ConnectionUnitTest {
             [{ retry: { maximum_attempts: 0 } }, 'amqp://localhost:5672'],
             [{ params: { heartBeat: 30 } }, 'amqp://localhost:5672?heartBeat=30'],
             [{ params: { heartBeat: 30 }, vhost: '/my_vhost' }, 'amqp://localhost:5672/%2Fmy_vhost?heartBeat=30'],
+            [{ uri: 'amqp://localhost:5672/%2Fmy_vhost?heartBeat=30' }, 'amqp://localhost:5672/%2Fmy_vhost?heartBeat=30'],
             [undefined, 'amqp://localhost:5672']
         ];
 
