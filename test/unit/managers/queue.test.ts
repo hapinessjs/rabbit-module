@@ -11,6 +11,7 @@ import { UserExchange } from '../../fixtures/Exchanges';
 import { generateMessage } from '../../mocks/Message';
 import { extractMetadataByDecorator } from '@hapiness/core';
 import { MessageStore } from '../../../src';
+import { ConnectionManagerMock } from '../../mocks/ConnectionManager';
 
 @suite('- Unit Queue')
 export class QueueServiceUnitTest {
@@ -31,7 +32,7 @@ export class QueueServiceUnitTest {
     }
 
     before() {
-        this.ch = new ChannelManager(<any>{ connection: {}});
+        this.ch = new ChannelManager(new ConnectionManagerMock());
         this.ch.setChannel(new ChannelMock());
         unit.spy(this.ch.getChannel(), 'assertQueue');
         unit.spy(this.ch.getChannel(), 'bindQueue');
