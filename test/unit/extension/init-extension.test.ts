@@ -22,7 +22,7 @@ export class InitExtensionUnitTest {
     private queue: QueueManager;
     private userQueue;
 
-    before() {
+    before(done) {
         try {
             const connection = new ConnectionManagerMock();
             this.ch = new ChannelManager(connection);
@@ -32,8 +32,9 @@ export class InitExtensionUnitTest {
             this.messageRouter = new MessageRouter();
             this.queue = new QueueManager(this.ch, this.queueWrapper);
             unit.spy(this.userQueue, 'onMessage');
+            done();
         } catch (err) {
-            console.log(err.stack);
+            done(err);
         }
     }
 
