@@ -22,15 +22,20 @@ export class InitExtensionUnitTest {
     private queue: QueueManager;
     private userQueue;
 
-    before() {
-        const connection = new ConnectionManagerMock();
-        this.ch = new ChannelManager(connection);
-        this.ch['ch'] = <any>new ChannelMock();
-        this.userQueue = new UserQueue();
-        this.queueWrapper = new QueueWrapper(this.userQueue, extractMetadataByDecorator(UserQueue, 'Queue'));
-        this.messageRouter = new MessageRouter();
-        this.queue = new QueueManager(this.ch, this.queueWrapper);
-        unit.spy(this.userQueue, 'onMessage');
+    before(done) {
+        try {
+            const connection = new ConnectionManagerMock();
+            this.ch = new ChannelManager(connection);
+            this.ch['ch'] = <any>new ChannelMock();
+            this.userQueue = new UserQueue();
+            this.queueWrapper = new QueueWrapper(this.userQueue, extractMetadataByDecorator(UserQueue, 'Queue'));
+            this.messageRouter = new MessageRouter();
+            this.queue = new QueueManager(this.ch, this.queueWrapper);
+            unit.spy(this.userQueue, 'onMessage');
+            done();
+        } catch (err) {
+            done(err);
+        }
     }
 
     after() {

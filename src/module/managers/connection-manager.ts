@@ -19,7 +19,7 @@ export class ConnectionManager extends EventEmitter {
     private _connect: typeof connect;
     private _defaultPrefetch: number;
     private _channelStore: ChannelStore;
-    private _isSIGTERMReceived: boolean;
+    private _closingServer: boolean;
 
     constructor(config?: RabbitMQConfigConnection) {
         super();
@@ -28,6 +28,7 @@ export class ConnectionManager extends EventEmitter {
         this._connection = null;
         this._isConnecting = false;
         this._isConnected = false;
+        this._closingServer = false;
         this._options = Object.assign({}, config);
         this._options.retry = Object.assign({ delay: 5000, maximum_attempts: -1 }, this._options.retry);
 
@@ -48,9 +49,9 @@ export class ConnectionManager extends EventEmitter {
 
         // Will block new connection if SIGTERM is received
         /* istanbul ignore next */
-        process.once('SIGTERM', () => this._isSIGTERMReceived = true);
+        process.once('SIGTERM', () => this._closingServer = true);
         /* istanbul ignore next */
-        process.once('SIGINT', () => this._isSIGTERMReceived = true);
+        process.once('SIGINT', () => this._closingServer = true);
 
         this.setDefaultPrefetch(this._options.default_prefetch);
 
@@ -88,13 +89,15 @@ export class ConnectionManager extends EventEmitter {
         return Observable.of(null)
             .flatMap(() => {
                 debug('try to open connection ...');
-                debug(this._options.retry.delay);
+                debug(`Retry delay: ${this._options.retry.delay}`);
                 return Observable.fromPromise(this._connect(this._uri));
             })
             .retryWhen(errors => {
                 errors.forEach(err => debug(err.message, err.stack));
                 return errors
+                    .scan(attempts => attempts + 1, 0)
                     .delay(this._options.retry.delay)
+                    .takeWhile((attempts) => attempts < this._options.retry.maximum_attempts && !this._closingServer)
                     .take(this._options.retry.maximum_attempts)
                     .concat(Observable.throw(new Error('Retry limit exceeded')))
             });
@@ -105,11 +108,8 @@ export class ConnectionManager extends EventEmitter {
             return Observable.of(null);
         }
 
-        /* istanbul ignore next */
-        if (this._isSIGTERMReceived) {
-            return Observable.of(null);
-        }
 
+        this._closingServer = false;
         this._isConnecting = true;
 
         debug('Connecting', this._uri);
@@ -138,6 +138,7 @@ export class ConnectionManager extends EventEmitter {
 
     close(): Observable<void> {
         this._isConnected = false;
+        this._closingServer = true;
         return Observable.fromPromise(this._connection.close());
     }
 
