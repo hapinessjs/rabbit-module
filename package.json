@@ -1,6 +1,6 @@
 {
   "name": "@hapiness/rabbitmq",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "Hapiness module for rabbitmq",
   "main": "commonjs/index.js",
   "types": "index.d.ts",

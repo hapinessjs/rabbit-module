@@ -97,7 +97,9 @@ export class ConnectionUnitTest {
                 unit.number(connectStub.callCount).is(3);
                 done();
             },
-            () => done(new Error('Should not be here'))
+            (err) => {
+                done(new Error('Should not be here'));
+            }
         );
     }
 
