@@ -453,6 +453,12 @@ To set up your development environment:
 [Back to top](#table-of-contents)
 
 ## Change History
+* v1.4.2 (2018-06-11)
+    * Do not retry to connect if closing server
+* v1.4.1 (2018-05-31)
+    * Fix channel creation after reconnection
+* v1.4.0 (2018-04-24)
+    * Refactor channel management to handle connection errors
 * v1.3.0 (2018-03-27)
     * Add shutdown (SIGTERM/SIGINT) support
 * v1.2.3 (2018-02-05)

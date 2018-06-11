@@ -108,11 +108,8 @@ export class ConnectionManager extends EventEmitter {
             return Observable.of(null);
         }
 
-        /* istanbul ignore next */
-        if (this._closingServer) {
-            return Observable.of(null);
-        }
 
+        this._closingServer = false;
         this._isConnecting = true;
 
         debug('Connecting', this._uri);
