@@ -61,7 +61,9 @@ export class RabbitMQExt implements OnExtensionLoad, OnModuleInstantiated, OnShu
             connection
                 .connect()
                 .flatMap(() => RegisterAnnotations.bootstrap(module, connection))
-                .subscribe(() => {}, err => errorHandler(err));
+                .subscribe(() => {}, err => {
+                    errorHandler(err);
+                });
         });
 
         return RegisterAnnotations.bootstrap(module, connection);

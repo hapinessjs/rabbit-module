@@ -8,6 +8,8 @@ import { ChannelStore } from './channel-store';
 import { ChannelManager } from './channel-manager';
 
 const debug = require('debug')('hapiness:rabbitmq');
+const retryLimitErr: any = new Error('Retry limit exceeded');
+retryLimitErr.code = 'RETRY_LIMIT_EXCEEDED';
 
 export class ConnectionManager extends EventEmitter {
     private _connection: Connection;
@@ -99,7 +101,7 @@ export class ConnectionManager extends EventEmitter {
                     .delay(this._options.retry.delay)
                     .takeWhile((attempts) => attempts < this._options.retry.maximum_attempts && !this._closingServer)
                     .take(this._options.retry.maximum_attempts)
-                    .concat(Observable.throw(new Error('Retry limit exceeded')))
+                    .concat(Observable.throw(retryLimitErr))
             });
     }
 
@@ -107,7 +109,6 @@ export class ConnectionManager extends EventEmitter {
         if (this.isConnecting()) {
             return Observable.of(null);
         }
-
 
         this._closingServer = false;
         this._isConnecting = true;
@@ -117,6 +118,10 @@ export class ConnectionManager extends EventEmitter {
         this.emitEvent('connecting');
         const obs = this.openConnection();
         return obs
+            .catch(err => {
+                this.emitEvent('error', err);
+                return Observable.throw(err);
+            })
             .flatMap(con => {
                 debug('connected, creating default channel ...');
                 this._connection = con;
