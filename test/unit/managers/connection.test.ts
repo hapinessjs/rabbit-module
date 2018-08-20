@@ -136,4 +136,23 @@ export class ConnectionUnitTest {
         instance.setDefaultPrefetch(5);
         unit.number(instance.getDefaultPrefetch()).is(5);
     }
+
+    @test(' - Test openConnection error')
+    testOpenConnectionError(done) {
+        const instance = new ConnectionManager({ retry: { delay: 100, maximum_attempts: 1 } });
+        instance['_connection'] = <any>new RabbitConnectionMock();
+        unit.stub(instance, '_connect').returns(Promise.reject(Observable.throw(new Error('Woopsie'))));
+
+        Observable.forkJoin([
+            Observable.fromEvent(instance, 'error').map(err => {
+                unit.object(err).isInstanceOf(Error).hasProperty('code', 'RETRY_LIMIT_EXCEEDED');
+            }),
+            instance.connect()
+                .catch(err => {
+                    unit.object(err).isInstanceOf(Error).hasProperty('code', 'RETRY_LIMIT_EXCEEDED');
+                    return Observable.throw(null);
+                })
+                .flatMap(() => Observable.throw(new Error('Cannot be here')))
+        ]).subscribe(() => done(), err => done(err));
+    }
 }
