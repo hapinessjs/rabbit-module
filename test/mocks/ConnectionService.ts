@@ -1,4 +1,4 @@
-import { ConnectionManager } from '../../src/index';
+import { ConnectionManager } from '../../src';
 import { ConnectionManagerMock } from './ConnectionManager';
 import { Connection } from 'amqplib';
 import { Injectable, Inject } from '@hapiness/core';

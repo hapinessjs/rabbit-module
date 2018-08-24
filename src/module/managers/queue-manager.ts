@@ -5,7 +5,7 @@ import { extractMetadataByDecorator, errorHandler } from '@hapiness/core';
 import { sendMessage, decodeJSONContent } from '../message';
 import { MessageResult, MessageOptions, RabbitMessage, QueueOptions, ConsumeOptions, QueueInterface } from '../interfaces';
 import { Bind } from '../decorators';
-import { ExchangeDecoratorInterface, ChannelManager } from '../index';
+import { ExchangeDecoratorInterface, ChannelManager } from '..';
 import { QueueWrapper } from './queue-wrapper';
 import { events } from '../events';
 import { MessageStore, StoreMessage } from './message-store';

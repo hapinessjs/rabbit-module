@@ -7,5 +7,5 @@ export * from './message-router';
 export * from './message';
 export * from './rabbitmq.extension';
 export * from './rabbitmq.module';
-export * from './register-annotations';
+export * from './extension/register-annotations';
 export * from './utils';

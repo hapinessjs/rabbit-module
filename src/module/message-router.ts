@@ -1,13 +1,14 @@
 import * as _get from 'lodash.get';
-import { extractMetadataByDecorator } from '@hapiness/core';
+import { extractMetadataByDecorator, DependencyInjection } from '@hapiness/core';
 import { Channel as ChannelInterface } from 'amqplib';
 import { Observable } from 'rxjs';
 import { MessageResult, RabbitMessage, MessageInterface } from './interfaces';
 import { MessageDecoratorInterface, QueueDecoratorInterface, ExchangeDecoratorInterface } from './decorators';
+import { MessageRouterInterface, RegisterMessageOptions } from './interfaces/message-router';
 
 export type messageResult = Observable<MessageResult>;
 
-export class MessageRouter {
+export class DefaultMessageRouter implements MessageRouterInterface {
     private classes: Array<{
         messageClass: MessageInterface;
         data: MessageDecoratorInterface;
@@ -17,23 +18,23 @@ export class MessageRouter {
         this.classes = [];
     }
 
-    registerMessage(messageClass: MessageInterface) {
-        const data = extractMetadataByDecorator<MessageDecoratorInterface>(messageClass.constructor, 'Message');
+    registerMessage({ token, data, module }: RegisterMessageOptions): Observable<any> {
+        return DependencyInjection.instantiateComponent<MessageInterface>(token, module.di).flatMap(messageClass => {
+            if (!data || !data.queue) {
+                return Observable.throw(new Error('Cannot register a message class without a queue'));
+            }
 
-        if (!data || !data.queue) {
-            throw new Error('Cannot register a message class without a queue');
-        }
+            if (!data.exchange && !data.routingKey && (!data.filter || !Object.keys(data.filter).length) && !data.is_fallback) {
+                return Observable.throw(new Error(`Cannot register a message without an exchange or routingKey,
+ filter or set is_fallback to true use your queue onMessage method instead`));
+            }
 
-        if (!data.exchange && !data.routingKey && (!data.filter || !Object.keys(data.filter).length) && !data.is_fallback) {
-            throw new Error(`Cannot register a message without an exchange or routingKey,
- filter or set is_fallback to true use your queue onMessage method instead`);
-        }
-
-        this.classes.push({ messageClass, data });
-        return messageClass;
+            this.classes.push({ messageClass, data });
+            return Observable.of(messageClass);
+        });
     }
 
-    getDispatcher(ch: ChannelInterface, message: RabbitMessage): Observable<() => messageResult> {
+    getDispatcher(ch: ChannelInterface, message: RabbitMessage): Observable<() => Observable<MessageResult>> {
         // If empty message or not an object
         // returns and fake ACK
         if (!message || typeof message !== 'object') {

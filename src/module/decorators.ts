@@ -1,7 +1,7 @@
 import { Type } from '@hapiness/core';
 import { createDecorator, CoreDecorator } from '@hapiness/core';
 import { Options } from 'amqplib';
-import { ExchangeType } from './interfaces/index';
+import { ExchangeType } from './interfaces';
 
 export interface Bind {
     exchange: Type<any>;

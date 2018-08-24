@@ -1,7 +1,7 @@
 import { Channel as ChannelInterface } from 'amqplib';
 import * as _has from 'lodash.has';
 import * as _pick from 'lodash.pick';
-import { MessageOptions } from './interfaces/index';
+import { MessageOptions } from './interfaces';
 import { events } from './events';
 
 export function sendMessage(ch: ChannelInterface, message: any, options: MessageOptions = {}): boolean {
