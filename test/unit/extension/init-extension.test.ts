@@ -1,9 +1,9 @@
 import { test, suite } from 'mocha-typescript';
 import * as unit from 'unit.js';
-import { RegisterAnnotations } from '../../../src/module/register-annotations';
+import { RegisterAnnotations } from '../../../src/module/extension/register-annotations';
 import { QueueManager, QueueWrapper, ChannelManager } from '../../../src/module/managers';
 import { ChannelMock } from '../../mocks/Channel';
-import { MessageRouter } from '../../../src/module/message-router';
+import { DefaultMessageRouter } from '../../../src/module/message-router';
 import { UserQueue } from '../../fixtures/Queues';
 import { extractMetadataByDecorator } from '@hapiness/core';
 import { generateMessage } from '../../mocks/Message';
@@ -11,6 +11,7 @@ import { Observable, Subscription } from 'rxjs';
 import { ErrorObservable } from 'rxjs/observable/ErrorObservable';
 import { RabbitMQExt } from '../../../src/module/rabbitmq.extension';
 import { ConnectionManagerMock } from '../../mocks/ConnectionManager';
+import { consumeQueue } from '../../../src/module/extension/consume-queue';
 
 // let errorHandler  = require('@hapiness/core/core').errorHandler;
 
@@ -18,7 +19,7 @@ import { ConnectionManagerMock } from '../../mocks/ConnectionManager';
 export class InitExtensionUnitTest {
     private ch: ChannelManager;
     private queueWrapper: QueueWrapper;
-    private messageRouter: MessageRouter;
+    private messageRouter: DefaultMessageRouter;
     private queue: QueueManager;
     private userQueue;
 
@@ -29,7 +30,7 @@ export class InitExtensionUnitTest {
             this.ch['ch'] = <any>new ChannelMock();
             this.userQueue = new UserQueue();
             this.queueWrapper = new QueueWrapper(this.userQueue, extractMetadataByDecorator(UserQueue, 'Queue'));
-            this.messageRouter = new MessageRouter();
+            this.messageRouter = new DefaultMessageRouter();
             this.queue = new QueueManager(this.ch, this.queueWrapper);
             unit.spy(this.userQueue, 'onMessage');
             done();
@@ -48,8 +49,8 @@ export class InitExtensionUnitTest {
     @test('- Should test consumeQueue when there is no message found')
     testConsumeQueue(done) {
         const spy = unit.spy(this.queue['_ch'].getChannel(), 'consume');
-        unit.function(RegisterAnnotations.consumeQueue);
-        RegisterAnnotations.consumeQueue(this.queue, this.messageRouter);
+        unit.function(consumeQueue);
+        consumeQueue(this.queue, this.messageRouter);
         unit.object(spy['firstCall']);
         unit.array(spy['firstCall']['args']);
         unit.string(spy['firstCall']['args'][0]).is('user.queue');
@@ -62,18 +63,16 @@ export class InitExtensionUnitTest {
 
     @test('- Should test consumeQueue when queue.consume() returns error <>')
     testConsumeQueueSubscribeError(done) {
-        unit.function(RegisterAnnotations.consumeQueue);
+        unit.function(consumeQueue);
         unit.stub(this.queue['_ch'].getChannel(), 'consume').returns(Promise.reject(new Error('Cannot consume queue')));
-        RegisterAnnotations
-            .consumeQueue(this.queue, this.messageRouter)
-            .subscribe(_ => done(), err => done(err));
+        consumeQueue(this.queue, this.messageRouter).subscribe(_ => done(), err => done(err));
     }
 
     @test('- Should test consumeQueue when there is an error other than message not found')
     testConsumeQueueError() {
         const spy = unit.spy(this.queue['_ch'].getChannel(), 'consume');
-        unit.function(RegisterAnnotations.consumeQueue);
-        RegisterAnnotations.consumeQueue(this.queue, this.messageRouter);
+        unit.function(consumeQueue);
+        consumeQueue(this.queue, this.messageRouter);
         const stub = unit.stub(this.messageRouter, 'getDispatcher');
         stub.returns(Observable.throw(new Error('Oops, something terrible happened!')));
         const message = generateMessage({ foo: 'bar' }, { exchange: 'user.queue' });
@@ -136,7 +135,7 @@ export class InitExtensionUnitTest {
             getName: () => 'hello',
             consume: () => Observable.throw(new Error('Cannot consume'))
         };
-        RegisterAnnotations.consumeQueue(<any>queueStub, <any>{})
+        consumeQueue(<any>queueStub, <any>{})
         .subscribe((_) => done(), err => done(err));
     }
 }

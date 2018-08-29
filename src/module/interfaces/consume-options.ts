@@ -1,4 +1,4 @@
-import { RabbitMessage } from './index';
+import { RabbitMessage } from '.';
 import { Channel } from 'amqplib';
 
 export interface ConsumeOptions {

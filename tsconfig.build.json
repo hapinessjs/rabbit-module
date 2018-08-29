@@ -6,5 +6,5 @@
         "declarationDir": "./dist",
         "types": ["node"]
     },
-    "exclude": ["node_modules", "dist", "test", "tools"]
+    "exclude": ["node_modules", "dist", "test", "tools", "sample"]
 }

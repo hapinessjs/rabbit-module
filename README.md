@@ -453,6 +453,8 @@ To set up your development environment:
 [Back to top](#table-of-contents)
 
 ## Change History
+* v1.5.0 (2018-08-24)
+    * Add possibility to provide a custom MessageRouter
 * v1.4.3 (2018-08-20)
     * Emit RETRY_LIMIT_EXCEEDED error on ConnectionManager
 * v1.4.2 (2018-06-11)
