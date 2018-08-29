@@ -3,7 +3,7 @@ import * as unit from 'unit.js';
 
 import { Observable } from 'rxjs/Observable';
 import { RabbitConnectionService, ChannelService } from '../../../src/module/services';
-import { ChannelManager } from '../../../src/index';
+import { ChannelManager } from '../../../src';
 import { ConnectionManagerMock } from '../../mocks/ConnectionManager';
 import { ChannelMock } from '../../mocks/Channel';
 

@@ -1,4 +1,4 @@
-import { ConnectionManager, ChannelManager } from '../../src/index';
+import { ConnectionManager, ChannelManager } from '../../src';
 import { RabbitConnectionMock } from './RabbitConnection';
 import { ChannelMock } from './Channel';
 import { Observable } from 'rxjs';

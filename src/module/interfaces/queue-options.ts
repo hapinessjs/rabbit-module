@@ -1,5 +1,5 @@
 import { Options } from 'amqplib';
-import { Bind } from '../decorators';
+import { Bind } from './bind';
 
 export interface QueueOptions {
     name: string;

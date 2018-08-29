@@ -98,7 +98,7 @@ class Packaging {
         // function to write JSON
         const writeJson = (dest: string, data: any): Observable<any> => {
             return <Observable<any>> Observable.create((observer) => {
-                fs.outputJson(dest, data, (error) => {
+                fs.outputJson(dest, data, { spaces: 2 }, (error) => {
                     if (error) {
                         return observer.error(error);
                     }

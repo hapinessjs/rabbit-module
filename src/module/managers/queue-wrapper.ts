@@ -1,6 +1,6 @@
-import { QueueDecoratorInterface, Bind } from '../decorators';
+import { QueueDecoratorInterface } from '../decorators';
 import { Options } from 'amqplib';
-import { QueueInterface } from '../interfaces';
+import { QueueInterface, Bind } from '../interfaces';
 
 export class QueueWrapper {
     private _instance: QueueInterface;

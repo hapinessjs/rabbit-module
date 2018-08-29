@@ -15,10 +15,24 @@ import { RabbitMQConfig } from './interfaces/config';
 
 import { MessageStore } from './managers/message-store';
 
+import { RegisterAnnotations } from './extension/register-annotations';
+import { DefaultMessageRouter } from './message-router';
+
 const debug = require('debug')('hapiness:rabbitmq');
 
 export class RabbitMQExt implements OnExtensionLoad, OnModuleInstantiated, OnShutdown {
-    static ConnectionManager: typeof ConnectionManager;
+    static ConnectionManager: typeof ConnectionManager = ConnectionManager;
+    static MessageRouter = DefaultMessageRouter;
+
+    public static setConnectionManager(_ConnectionManager: typeof ConnectionManager) {
+        this.ConnectionManager = _ConnectionManager;
+        return this;
+    }
+
+    public static setMessageRouter(_MessageRouter) {
+        this.MessageRouter = _MessageRouter;
+        return this;
+    }
 
     public static setConfig(config: RabbitMQConfig): ExtensionWithConfig {
         return {
@@ -60,13 +74,13 @@ export class RabbitMQExt implements OnExtensionLoad, OnModuleInstantiated, OnShu
         connection.on('error', () => {
             connection
                 .connect()
-                .flatMap(() => RegisterAnnotations.bootstrap(module, connection))
+                .flatMap(() => RegisterAnnotations.bootstrap(module, connection, RabbitMQExt.MessageRouter))
                 .subscribe(() => {}, err => {
                     errorHandler(err);
                 });
         });
 
-        return RegisterAnnotations.bootstrap(module, connection);
+        return RegisterAnnotations.bootstrap(module, connection, RabbitMQExt.MessageRouter);
     }
 
     onShutdown(module, connection: ConnectionManager) {
@@ -84,7 +98,4 @@ export class RabbitMQExt implements OnExtensionLoad, OnModuleInstantiated, OnShu
     }
 }
 
-RabbitMQExt.ConnectionManager = ConnectionManager;
-
-import { RegisterAnnotations } from './register-annotations';
 
