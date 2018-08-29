@@ -1,7 +1,7 @@
 import { ConnectionManager } from '../managers/connection-manager';
-import { ChannelOptions } from '../decorators';
 import { Observable } from 'rxjs/Observable';
 import { ChannelManager } from '../managers/channel-manager';
+import { ChannelOptions } from '../interfaces';
 
 export function getChannel(connection: ConnectionManager, channel: ChannelOptions): Observable<ChannelManager> {
     return connection
