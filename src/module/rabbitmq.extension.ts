@@ -71,10 +71,11 @@ export class RabbitMQExt implements OnExtensionLoad, OnModuleInstantiated, OnShu
         debug('bootstrapping module: asserting exchanges, queues, binds, messages routing');
 
         // Try to reconnect and launch bootstrap when we have an error
-        connection.on('error', () => {
+        connection.once('error', () => {
+            debug('connection.once#error: try to reconnect');
             connection
                 .connect()
-                .flatMap(() => RegisterAnnotations.bootstrap(module, connection, RabbitMQExt.MessageRouter))
+                .do(() => this.onModuleInstantiated(module, connection))
                 .subscribe(() => {}, err => {
                     errorHandler(err);
                 });
@@ -97,5 +98,3 @@ export class RabbitMQExt implements OnExtensionLoad, OnModuleInstantiated, OnShu
         };
     }
 }
-
-
