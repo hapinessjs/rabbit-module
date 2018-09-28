@@ -453,6 +453,8 @@ To set up your development environment:
 [Back to top](#table-of-contents)
 
 ## Change History
+* v1.5.1 (2018-09-24)
+    * Fix reconnection error: use once instad of on and rebind event correctly
 * v1.5.0 (2018-08-24)
     * Add possibility to provide a custom MessageRouter
 * v1.4.3 (2018-08-20)
