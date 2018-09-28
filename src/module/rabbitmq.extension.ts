@@ -78,7 +78,7 @@ export class RabbitMQExt implements OnExtensionLoad, OnModuleInstantiated, OnShu
                 .do(() => this.onModuleInstantiated(module, connection))
                 .subscribe(() => {}, err => {
                     errorHandler(err);
-                    const connectionError: any = new Error('@hapiness/rabbitmq Connection error');
+                    const connectionError: any = new Error('Connection error');
                     connectionError.source = err;
                     connectionError.key = 'HAPINESS_RABBITMQ_CONNECTION_ERROR';
                     connection.emit('error', connectionError);
