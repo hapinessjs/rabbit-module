@@ -75,7 +75,14 @@ export class RabbitMQExt implements OnExtensionLoad, OnModuleInstantiated, OnShu
             debug('connection.once#error: try to reconnect');
             connection
                 .connect()
-                .do(() => this.onModuleInstantiated(module, connection))
+                .do(() => this.onModuleInstantiated(module, connection)
+                    .subscribe(() => {}, err => {
+                        errorHandler(err);
+                        const bootstrapError: any = new Error('Bootstrap error');
+                        bootstrapError.source = err;
+                        bootstrapError.key = 'HAPINESS_RABBITMQ_BOOTSTRAP_ERROR';
+                        connection.emit('error', bootstrapError);
+                    }))
                 .subscribe(() => {}, err => {
                     errorHandler(err);
                     const connectionError: any = new Error('Connection error');
