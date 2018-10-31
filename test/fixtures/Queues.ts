@@ -4,6 +4,20 @@ import { MessageResult } from '../../src/module/interfaces';
 import { Observable } from 'rxjs';
 
 @Queue({
+    name: 'dont.assert.me.queue',
+    assert: false,
+    check: false
+})
+export class DontAssertMeQueue {}
+
+@Queue({
+    name: 'check.me.queue',
+    assert: false,
+    check: true
+})
+export class DontAssertButCheck {}
+
+@Queue({
     name: 'user.queue',
     options: {
         durable: true

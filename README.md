@@ -453,6 +453,9 @@ To set up your development environment:
 [Back to top](#table-of-contents)
 
 ## Change History
+* v1.6.0 (2018-10-31)
+    * Add assert option in Exchange and Queue decorator to allow to disable assert during bootstrap
+    * Add check option in Exchange and Queue decorator to verify existence during bootstrap
 * v1.5.1 (2018-09-24)
     * Fix reconnection error: use once instad of on and rebind event correctly
 * v1.5.0 (2018-08-24)

@@ -15,4 +15,6 @@ export interface RabbitMQConfigConnection {
 
 export interface RabbitMQConfig {
     connection: RabbitMQConfigConnection;
+    assert?: boolean;
+    check?: boolean;
 }

@@ -9,6 +9,7 @@ import {
     OnShutdown
  } from '@hapiness/core';
 import { Observable } from 'rxjs';
+import { EventEmitter } from 'events';
 
 import { ConnectionManager } from './managers';
 import { RabbitMQConfig } from './interfaces/config';
@@ -20,9 +21,10 @@ import { DefaultMessageRouter } from './message-router';
 
 const debug = require('debug')('hapiness:rabbitmq');
 
-export class RabbitMQExt implements OnExtensionLoad, OnModuleInstantiated, OnShutdown {
+export class RabbitMQExt extends EventEmitter implements OnExtensionLoad, OnModuleInstantiated, OnShutdown {
     static ConnectionManager: typeof ConnectionManager = ConnectionManager;
     static MessageRouter = DefaultMessageRouter;
+    private static config: RabbitMQConfig;
 
     public static setConnectionManager(_ConnectionManager: typeof ConnectionManager) {
         this.ConnectionManager = _ConnectionManager;
@@ -35,10 +37,15 @@ export class RabbitMQExt implements OnExtensionLoad, OnModuleInstantiated, OnShu
     }
 
     public static setConfig(config: RabbitMQConfig): ExtensionWithConfig {
+        RabbitMQExt.config = { check: false, assert: true, ...config };
         return {
             token: RabbitMQExt,
             config
         };
+    }
+
+    public static getConfig(): RabbitMQConfig {
+        return RabbitMQExt.config;
     }
 
     /**
@@ -73,16 +80,10 @@ export class RabbitMQExt implements OnExtensionLoad, OnModuleInstantiated, OnShu
         // Try to reconnect and launch bootstrap when we have an error
         connection.once('error', () => {
             debug('connection.once#error: try to reconnect');
-            connection
-                .connect()
-                .do(() => this.onModuleInstantiated(module, connection)
-                    .subscribe(() => {}, err => {
-                        errorHandler(err);
-                        const bootstrapError: any = new Error('Bootstrap error');
-                        bootstrapError.source = err;
-                        bootstrapError.key = 'HAPINESS_RABBITMQ_BOOTSTRAP_ERROR';
-                        connection.emit('error', bootstrapError);
-                    }))
+            connection.connect()
+            // When we are connected we need to launch the bootstrap sequence
+                .do(() =>
+                    this.onModuleInstantiated(module, connection).subscribe(() => {}, () => {}))
                 .subscribe(() => {}, err => {
                     errorHandler(err);
                     const connectionError: any = new Error('Connection error');
@@ -92,7 +93,16 @@ export class RabbitMQExt implements OnExtensionLoad, OnModuleInstantiated, OnShu
                 });
         });
 
-        return RegisterAnnotations.bootstrap(module, connection, RabbitMQExt.MessageRouter);
+        return RegisterAnnotations
+            .bootstrap(module, connection, RabbitMQExt.MessageRouter)
+            .catch(err => {
+                errorHandler(err);
+                const bootstrapError: any = new Error('Bootstrap error');
+                bootstrapError.source = err;
+                bootstrapError.key = 'HAPINESS_RABBITMQ_BOOTSTRAP_ERROR';
+                this.emit('error', bootstrapError);
+                return Observable.throw(bootstrapError);
+            });
     }
 
     onShutdown(module, connection: ConnectionManager) {

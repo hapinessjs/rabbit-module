@@ -124,8 +124,14 @@ export class InitExtensionUnitTest {
                     bootstrapStub.restore();
                     return Observable.throw(new Error('Woops'));
                 })
-                .catch(() => done())
+                .catch(() => null)
         );
+
+        connection.on('error', err => {
+            if (err && err.key === 'HAPINESS_RABBITMQ_CONNECTION_ERROR') {
+                done();
+            }
+        });
         connection.emit('error', new Error('Woops'));
     }
 
@@ -137,5 +143,59 @@ export class InitExtensionUnitTest {
         };
         consumeQueue(<any>queueStub, <any>{})
         .subscribe((_) => done(), err => done(err));
+    }
+
+    @test('- Should test onModuleInstantiated reconnection error')
+    testonModuleInstantiatedReconnectionErrorNOK(done) {
+        unit.function(RegisterAnnotations.bootstrap);
+        const bootstrapStub = unit.stub(RegisterAnnotations, 'bootstrap');
+        bootstrapStub.returns(Observable.of(null));
+        const connection = new ConnectionManagerMock();
+        const instance = new RabbitMQExt();
+        unit.function(instance.onModuleInstantiated);
+        instance.onModuleInstantiated(<any>null, connection);
+        const connectStub = unit.stub(connection, 'connect');
+
+        connectStub.returns(
+            Observable.of(null)
+                .flatMap(() => {
+                    unit.number(bootstrapStub.callCount).is(1);
+                    bootstrapStub.restore();
+                    return Observable.of(null);
+                })
+                .catch((err) => done(err))
+                .map(() => done())
+        );
+
+        connection.emit('error', new Error('Woops'));
+    }
+
+    @test('- Should test onModuleInstantiated bootstrap error after reconnection')
+    testonModuleInstantiatedReconnectionErrorNOK2(done) {
+        unit.function(RegisterAnnotations.bootstrap);
+        const bootstrapStub = unit.stub(RegisterAnnotations, 'bootstrap');
+        bootstrapStub.returns(Observable.of(null));
+        const connection = new ConnectionManagerMock();
+        const instance = new RabbitMQExt();
+        unit.function(instance.onModuleInstantiated);
+        instance.onModuleInstantiated(<any>null, connection);
+        const connectStub = unit.stub(connection, 'connect');
+
+        connectStub.returns(
+            Observable.of(null)
+                .flatMap(() => {
+                    unit.number(bootstrapStub.callCount).is(1);
+                    bootstrapStub.returns(Observable.throw(new Error('Cannot bootstrap')));
+                    return Observable.of(null);
+                })
+                .catch((err) => null)
+        );
+
+        instance.on('error', err => {
+            if (err && err.key === 'HAPINESS_RABBITMQ_BOOTSTRAP_ERROR') {
+                done();
+            }
+        });
+        connection.emit('error', new Error('Woops'));
     }
 }

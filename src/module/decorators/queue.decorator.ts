@@ -10,6 +10,8 @@ export interface QueueDecoratorInterface {
     channel?: ChannelOptions;
     force_json_decode?: boolean;
     providers?: Array<Type<any> | any>;
+    assert?: boolean;
+    check?: boolean;
 }
 export const Queue: CoreDecorator<QueueDecoratorInterface> = createDecorator<QueueDecoratorInterface>('Queue', {
     name: undefined,
@@ -18,4 +20,6 @@ export const Queue: CoreDecorator<QueueDecoratorInterface> = createDecorator<Que
     channel: undefined,
     force_json_decode: false,
     providers: [],
+    assert: undefined,
+    check: undefined,
 });

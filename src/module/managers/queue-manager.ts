@@ -227,6 +227,7 @@ export class QueueManager {
     }
 
     check(): Observable<Replies.AssertQueue> {
+        debug(`checking queue ${this.getName()} ...`);
         return Observable.fromPromise(this._ch.getChannel().checkQueue(this.getName()));
     }
 
