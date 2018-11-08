@@ -67,6 +67,7 @@ export class ExchangeManager {
     }
 
     check(): Observable<Replies.Empty> {
+        debug(`checking exchange ${this.getName()} ...`);
         return Observable.fromPromise(this._ch.checkExchange(this.getName()));
     }
 
