@@ -8,6 +8,8 @@ export interface ExchangeDecoratorInterface {
     options?: Options.AssertExchange;
     channel?: ChannelOptions;
     providers?: Array<Type<any> | any>;
+    assert?: boolean;
+    check?: boolean;
 }
 export const Exchange: CoreDecorator<ExchangeDecoratorInterface> = createDecorator<ExchangeDecoratorInterface>('Exchange', {
     name: undefined,
@@ -15,4 +17,6 @@ export const Exchange: CoreDecorator<ExchangeDecoratorInterface> = createDecorat
     options: undefined,
     channel: undefined,
     providers: [],
+    assert: undefined,
+    check: undefined,
 });

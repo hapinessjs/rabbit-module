@@ -12,8 +12,8 @@ import {
     PokemonsMessage
 } from '../fixtures/Messages';
 import { MayonaiseService } from '../fixtures/Services';
-import { AnotherQueue, UserQueue, WorkerQueue, EmptyQueue } from '../fixtures/Queues';
-import { EventsExchange, UserExchange } from '../fixtures/Exchanges';
+import { AnotherQueue, UserQueue, WorkerQueue, EmptyQueue, DontAssertMeQueue, DontAssertButCheck } from '../fixtures/Queues';
+import { EventsExchange, UserExchange, DontAssertMeExchange, DontAssertButCheckExchange } from '../fixtures/Exchanges';
 import { RabbitMQModule } from '../../src/module';
 import { RabbitConnectionService } from '../../src/module/services';
 import { ConnectionManagerMock } from '../mocks/ConnectionManager';
@@ -36,7 +36,11 @@ export class RabbitMQIntegrationTest {
                 WorkerQueue,
                 UserQueue,
                 AnotherQueue,
-                EmptyQueue
+                EmptyQueue,
+                DontAssertMeExchange,
+                DontAssertButCheckExchange,
+                DontAssertMeQueue,
+                DontAssertButCheck
             ],
             providers: [MayonaiseService],
             exports: [],

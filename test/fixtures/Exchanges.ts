@@ -3,6 +3,29 @@ import { ExchangeType } from '../../src/module/interfaces';
 import { Observable } from 'rxjs';
 
 @Exchange({
+    name: 'dont.assert.me.exchange',
+    type: ExchangeType.Topic,
+    options: {
+        durable: true,
+        autoDelete: false
+    },
+    assert: false
+})
+export class DontAssertMeExchange {}
+
+@Exchange({
+    name: 'check.me.exchange',
+    type: ExchangeType.Topic,
+    options: {
+        durable: true,
+        autoDelete: false
+    },
+    assert: false,
+    check: true
+})
+export class DontAssertButCheckExchange {}
+
+@Exchange({
     name: 'user.exchange',
     type: ExchangeType.Topic,
     options: {

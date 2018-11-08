@@ -7,7 +7,7 @@ export class ChannelMock extends EventEmitter {
     }
 
     checkExchange() {
-        return Promise.resolve(null);
+        return Promise.resolve(true);
     }
 
     assertQueue() {
@@ -15,7 +15,7 @@ export class ChannelMock extends EventEmitter {
     }
 
     checkQueue() {
-        return Promise.resolve(null);
+        return Promise.resolve(true);
     }
 
     prefetch() {
