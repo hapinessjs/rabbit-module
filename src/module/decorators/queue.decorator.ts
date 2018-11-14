@@ -18,7 +18,7 @@ export const Queue: CoreDecorator<QueueDecoratorInterface> = createDecorator<Que
     binds: undefined,
     options: undefined,
     channel: undefined,
-    force_json_decode: false,
+    force_json_decode: true,
     providers: [],
     assert: undefined,
     check: undefined,
