@@ -453,6 +453,8 @@ To set up your development environment:
 [Back to top](#table-of-contents)
 
 ## Change History
+* v1.6.1 (2018-11-14)
+    * force_json_decode is now true by default
 * v1.6.0 (2018-10-31)
     * Add assert option in Exchange and Queue decorator to allow to disable assert during bootstrap
     * Add check option in Exchange and Queue decorator to verify existence during bootstrap
