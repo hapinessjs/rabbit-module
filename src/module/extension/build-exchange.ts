@@ -1,7 +1,7 @@
 import { Observable } from 'rxjs/Observable';
-import { CoreModule, DependencyInjection } from '@hapiness/core';
+import { CoreModule } from '@hapiness/core';
 import { ConnectionManager } from '../managers/connection-manager';
-import { metadataFromDeclarations } from '../utils';
+import { metadataFromDeclarations, instantiateWithProviders } from '../utils';
 import { ExchangeDecoratorInterface } from '../decorators';
 import { ExchangeManager } from '../managers/exchange-manager';
 import { ExchangeWrapper } from '../managers/exchange-wrapper';
@@ -14,7 +14,7 @@ export default function buildExchanges(modules: CoreModule[], connection: Connec
             metadataFromDeclarations<ExchangeDecoratorInterface>(_module.declarations, 'Exchange')
                 .map(metadata => ({ metadata, _module }))
         )
-        .flatMap(({ metadata, _module }) => DependencyInjection.instantiateComponent(metadata.token, _module.di)
+        .flatMap(({ metadata, _module }) => instantiateWithProviders(metadata.token, metadata.data.providers, _module)
             .map(instance => ({ instance, _module, metadata })))
         .flatMap(({ instance, _module, metadata }) => {
             const exchange = new ExchangeManager(connection.defaultChannel, new ExchangeWrapper(instance, metadata.data));
