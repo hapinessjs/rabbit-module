@@ -1,7 +1,7 @@
-import { CoreModule, DependencyInjection, extractMetadataByDecorator, Type } from '@hapiness/core';
+import { CoreModule, extractMetadataByDecorator, Type } from '@hapiness/core';
 import { ConnectionManager } from '../managers/connection-manager';
 import { Observable } from 'rxjs/Observable';
-import { metadataFromDeclarations } from '../utils';
+import { metadataFromDeclarations, instantiateWithProviders } from '../utils';
 import { QueueDecoratorInterface, ExchangeDecoratorInterface } from '../decorators';
 import { getChannel } from './get-channel';
 import { QueueManager } from '../managers/queue-manager';
@@ -21,7 +21,7 @@ export default function buildQueues(
                 .map(metadata => ({ metadata, _module }))
         )
         .flatMap(({ metadata, _module }) =>
-            DependencyInjection.instantiateComponent(metadata.token, _module.di)
+            instantiateWithProviders(metadata.token, metadata.data.providers, _module)
                 .map(instance => ({ instance, _module, metadata})))
         // Assert queue
         .flatMap(({ instance, _module, metadata }) =>

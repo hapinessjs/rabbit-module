@@ -453,6 +453,8 @@ To set up your development environment:
 [Back to top](#table-of-contents)
 
 ## Change History
+* v1.6.2 (2018-11-22)
+    * Create DI with providers for queues and exchanges
 * v1.6.1 (2018-11-14)
     * force_json_decode is now true by default
 * v1.6.0 (2018-10-31)

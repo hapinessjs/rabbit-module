@@ -1,4 +1,4 @@
-import { CoreModule, Type, extractMetadataByDecorator } from '@hapiness/core';
+import { CoreModule, Type, extractMetadataByDecorator, DependencyInjection } from '@hapiness/core';
 import { Observable } from 'rxjs/Observable';
 
 export const getModules = (module: CoreModule): CoreModule[] => {
@@ -22,4 +22,9 @@ export function metadataFromDeclarations<T>(declarations: Type<any>[], decorator
             token: _,
             data: extractMetadataByDecorator<T>(_, decoratorName)
         }));
+}
+
+export function instantiateWithProviders<T = any>(token: any, providers: any[], module): Observable<T> {
+    return DependencyInjection.createAndResolve([].concat(providers), module.di)
+        .flatMap(di => DependencyInjection.instantiateComponent(token, di));
 }
