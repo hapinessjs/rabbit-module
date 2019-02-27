@@ -7,7 +7,6 @@ import { Observable } from 'rxjs/Observable';
 import { QueueManager, QueueWrapper, ChannelManager } from '../../../src/module/managers';
 import { ChannelMock } from '../../mocks/Channel';
 import { UserQueue, AnotherQueue } from '../../fixtures/Queues';
-import { UserExchange } from '../../fixtures/Exchanges';
 import { generateMessage } from '../../mocks/Message';
 import { extractMetadataByDecorator } from '@hapiness/core';
 import { MessageStore } from '../../../src';
@@ -47,8 +46,14 @@ export class QueueServiceUnitTest {
 
         this.anotherQueue = new AnotherQueue();
 
-        this.userQueueWrapper = new QueueWrapper(this.userQueue, extractMetadataByDecorator(UserQueue, 'Queue'));
-        this.anotherQueueWrapper = new QueueWrapper(this.anotherQueue, extractMetadataByDecorator(AnotherQueue, 'Queue'));
+        this.userQueueWrapper = new QueueWrapper(this.userQueue, {
+            token: UserQueue,
+            data: extractMetadataByDecorator(UserQueue, 'Queue')
+        });
+        this.anotherQueueWrapper = new QueueWrapper(this.anotherQueue, {
+            token: AnotherQueue,
+            data: extractMetadataByDecorator(AnotherQueue, 'Queue')
+        });
     }
 
     after() {
@@ -57,21 +62,6 @@ export class QueueServiceUnitTest {
         this.anotherQueue = null;
         this.userQueueWrapper = null;
         this.anotherQueueWrapper = null;
-    }
-
-    @test('- Should test with queue as options')
-    testNew() {
-        const instance = new QueueManager(<any>this.ch, { name: 'user.queue' });
-        unit.function(instance.assert);
-        unit.function(instance.check);
-        unit.function(instance.getName);
-        unit.function(instance.isAsserted);
-        unit.function(instance.consume);
-        unit.function(instance.sendMessage);
-        unit.function(instance.bind);
-        unit.function(instance.createBinds);
-        unit.bool(instance.isAsserted()).isFalse();
-        unit.value(instance.getName()).is('user.queue');
     }
 
     @test('- Should test with queue class')
@@ -116,28 +106,6 @@ export class QueueServiceUnitTest {
                 unit.array(this.ch.getChannel().bindQueue['thirdCall'].args).is(['user.queue', 'user.exchange', 'user.deleted']);
                 unit.array(this.ch.getChannel().bindQueue['getCalls']()[3].args).is(['user.queue', 'user.exchange', '']);
                 unit.array(this.ch.getChannel().bindQueue['getCalls']()[4].args).is(['user.queue', 'another.exchange', 'baz']);
-                done();
-            });
-    }
-
-    @test('- Should test binding to exchange with options')
-    testBindingOptions(done) {
-        const instance = new QueueManager(<any>this.ch, this.userQueueWrapper);
-        const anotherInstance = new QueueManager(<any>this.ch, { name: 'another.queue' });
-        unit.value(instance.getName()).is('user.queue');
-        const obs = instance.assert();
-        obs
-            .flatMap(_ => {
-                unit.bool(instance.isAsserted()).isTrue();
-                return instance.createBinds([{ exchange: UserExchange, pattern: 'foo' }, { exchange: UserExchange, pattern: 'bar' }]);
-            })
-            .flatMap(_ => {
-                return anotherInstance.createBinds();
-            })
-            .subscribe(_ => {
-                unit.number(this.ch.getChannel().bindQueue['callCount']).is(2);
-                unit.array(this.ch.getChannel().bindQueue['firstCall'].args).is(['user.queue', 'user.exchange', 'foo']);
-                unit.array(this.ch.getChannel().bindQueue['secondCall'].args).is(['user.queue', 'user.exchange', 'bar']);
                 done();
             });
     }
@@ -213,7 +181,8 @@ export class QueueServiceUnitTest {
         obs
             .flatMap(_ => {
                 unit.bool(instance.isAsserted()).isTrue();
-                return instance.consume(dispatcher, { decodeMessageContent: <any>'', errorHandler });
+                instance.setDispatcher(dispatcher);
+                return instance.consume({ decodeMessageContent: <any>'', errorHandler });
             })
             .subscribe(_ => {
                 unit.bool(this.ch.getChannel().consume['calledOnce']).isTrue();
@@ -240,7 +209,8 @@ export class QueueServiceUnitTest {
         obs
             .flatMap(_ => {
                 unit.bool(instance.isAsserted()).isTrue();
-                return instance.consume(dispatcher, { decodeMessageContent: <any>'' });
+                instance.setDispatcher(dispatcher);
+                return instance.consume({ decodeMessageContent: <any>'' });
             })
             .subscribe(_ => {
                 unit.bool(this.ch.getChannel().consume['calledOnce']).isTrue();
@@ -269,7 +239,8 @@ export class QueueServiceUnitTest {
         obs
             .flatMap(_ => {
                 unit.bool(instance.isAsserted()).isTrue();
-                return instance.consume(spy, { decodeMessageContent: false });
+                instance.setDispatcher(spy);
+                return instance.consume({ decodeMessageContent: false });
             })
             .subscribe(_ => {
                 unit.bool(this.ch.getChannel().consume['calledOnce']).isTrue();
@@ -313,7 +284,8 @@ export class QueueServiceUnitTest {
 
         instance.assert().subscribe(_ => {
             unit.bool(instance.isAsserted()).isTrue();
-            instance.consume((ch, message) => dispatcher);
+            instance.setDispatcher((ch, message) => dispatcher);
+            instance.consume();
             const message1 = generateMessage(null, { exchange: instance.getName() });
             this.ch.getChannel()['sendMessage'](message1);
 
@@ -336,7 +308,8 @@ export class QueueServiceUnitTest {
 
         instance.assert().subscribe(_ => {
             unit.bool(instance.isAsserted()).isTrue();
-            instance.consume((ch, message) => dispatcher);
+            instance.setDispatcher((ch, message) => dispatcher);
+            instance.consume();
             const message1 = generateMessage(null, { exchange: instance.getName() });
             this.ch.getChannel()['sendMessage'](message1);
 
@@ -359,7 +332,8 @@ export class QueueServiceUnitTest {
 
         instance.assert().subscribe(_ => {
             unit.bool(instance.isAsserted()).isTrue();
-            instance.consume((ch, message) => dispatcher);
+            instance.setDispatcher((ch, message) => dispatcher);
+            instance.consume();
             const message1 = generateMessage(null, { exchange: instance.getName() });
             this.ch.getChannel()['sendMessage'](message1);
 
@@ -382,7 +356,8 @@ export class QueueServiceUnitTest {
 
         instance.assert().subscribe(_ => {
             unit.bool(instance.isAsserted()).isTrue();
-            instance.consume((ch, message) => dispatcher);
+            instance.setDispatcher((ch, message) => dispatcher);
+            instance.consume();
             const message1 = generateMessage(null, { exchange: instance.getName() });
             this.ch.getChannel()['sendMessage'](message1);
 
@@ -404,7 +379,8 @@ export class QueueServiceUnitTest {
 
         instance.assert().subscribe(_ => {
             unit.bool(instance.isAsserted()).isTrue();
-            instance.consume((ch, message) => dispatcher);
+            instance.setDispatcher((ch, message) => dispatcher);
+            instance.consume();
             const message1 = generateMessage(null, { exchange: instance.getName() });
             this.ch.getChannel()['sendMessage'](message1);
 
@@ -426,7 +402,7 @@ export class QueueServiceUnitTest {
         obs.subscribe(_ => {
             unit.bool(instance.isAsserted()).isTrue();
             const _errorHandler = unit.spy();
-            instance.consume(null, { errorHandler: _errorHandler, force_json_decode: true });
+            instance.consume({ errorHandler: _errorHandler, force_json_decode: true });
             const message1 = generateMessage(null, { exchange: instance.getName() });
             message1.content = Buffer.from('xaxa');
             this.ch.getChannel()['sendMessage'](message1);
@@ -445,7 +421,7 @@ export class QueueServiceUnitTest {
 
         obs.subscribe(_ => {
             unit.bool(instance.isAsserted()).isTrue();
-            instance.consume(null, { force_json_decode: true });
+            instance.consume({ force_json_decode: true });
             const message1 = generateMessage(null, { exchange: instance.getName() });
             message1.content = Buffer.from('xaxa');
             this.ch.getChannel()['sendMessage'](message1);
@@ -471,15 +447,5 @@ export class QueueServiceUnitTest {
             unit.array(this.ch.getChannel().checkQueue['firstCall'].args).is(['user.queue']);
             done();
         });
-    }
-
-    @test('- Test QueueWrapper')
-    testExchangeWrapper() {
-        const wrapper = new QueueWrapper(null, null);
-        unit.value(wrapper.getMeta()).is(null);
-        unit.value(wrapper.getName()).is(null);
-        unit.value(wrapper.getBinds()).is(null);
-        unit.value(wrapper.getAssertOptions()).is(null);
-        unit.value(wrapper.getForceJsonDecode()).is(false);
     }
 }

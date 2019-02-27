@@ -29,7 +29,8 @@ export class InitExtensionUnitTest {
             this.ch = new ChannelManager(connection);
             this.ch['ch'] = <any>new ChannelMock();
             this.userQueue = new UserQueue();
-            this.queueWrapper = new QueueWrapper(this.userQueue, extractMetadataByDecorator(UserQueue, 'Queue'));
+            this.queueWrapper = new QueueWrapper(
+                this.userQueue, { token: UserQueue, data: extractMetadataByDecorator(UserQueue, 'Queue') });
             this.messageRouter = new DefaultMessageRouter();
             this.queue = new QueueManager(this.ch, this.queueWrapper);
             unit.spy(this.userQueue, 'onMessage');
@@ -138,6 +139,7 @@ export class InitExtensionUnitTest {
     @test('- Should test error on consumeQueue')
     testConsumeError(done) {
         const queueStub = {
+            setDispatcher() {},
             getName: () => 'hello',
             consume: () => Observable.throw(new Error('Cannot consume'))
         };
