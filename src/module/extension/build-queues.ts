@@ -10,6 +10,7 @@ import registerMessages from './register-messages';
 import { MessageRouterInterface } from '../interfaces/message-router';
 import { consumeQueue } from './consume-queue';
 import { RabbitMQExt } from '../rabbitmq.extension';
+import { QueueStore } from '../managers/queue-store';
 
 export default function buildQueues(
     modules: CoreModule[], connection: ConnectionManager, MessageRouter: Type<MessageRouterInterface>
@@ -30,7 +31,8 @@ export default function buildQueues(
                     .map(channel => ({ instance, metadata, channel, _module })) :
                 Observable.of({ instance, metadata, channel: connection.defaultChannelManager, _module }))
         .flatMap(({ instance, metadata, channel, _module }) => {
-            const queue = new QueueManager(channel, new QueueWrapper(instance, metadata.data));
+            const queue = new QueueManager(channel, new QueueWrapper(instance, metadata));
+            QueueStore.getInstance().addQueue(queue);
             const shouldAssert = typeof metadata.data.assert === 'boolean' ? metadata.data.assert : RabbitMQExt.getConfig().assert;
             // Don't check queue if we assert it
             const assertOrCheck$ = shouldAssert
