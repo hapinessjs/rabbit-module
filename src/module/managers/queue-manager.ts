@@ -1,9 +1,9 @@
 import * as _pick from 'lodash.pick';
 import { Observable } from 'rxjs';
-import { Channel as ChannelInterface, Replies } from 'amqplib';
+import { Channel as ChannelInterface, Replies, Options } from 'amqplib';
 import { extractMetadataByDecorator, errorHandler } from '@hapiness/core';
 import { sendMessage, decodeJSONContent } from '../message';
-import { MessageResult, MessageOptions, RabbitMessage, QueueOptions, ConsumeOptions, QueueInterface, Bind } from '../interfaces';
+import { MessageResult, MessageOptions, RabbitMessage, ConsumeOptions, QueueInterface, Bind, QueueDispatcherOptions } from '../interfaces';
 import { ExchangeDecoratorInterface, ChannelManager } from '..';
 import { QueueWrapper } from './queue-wrapper';
 import { events } from '../events';
@@ -16,12 +16,17 @@ export class QueueManager {
     private _ch: ChannelManager;
     private _name: string;
     private _queue: QueueInterface;
+    private _queueWrapper: QueueWrapper;
     private _binds: Array<Bind>;
     private _forceJsonDecode: boolean;
     private _isAsserted: boolean;
-    private _options;
+    private _consuming = false;
+    private _consumerTag: string;
+    private _dispatcher: (ch: ChannelInterface, message: RabbitMessage, { queue }: QueueDispatcherOptions) =>
+    Observable<() => Observable<MessageResult>>;
+    private _options: Options.AssertQueue;
 
-    constructor(ch: ChannelManager, queue: QueueWrapper | QueueOptions) {
+    constructor(ch: ChannelManager, queue: QueueWrapper) {
         this._ch = ch;
 
         if (queue instanceof QueueWrapper) {
@@ -30,11 +35,7 @@ export class QueueManager {
             this._binds = queue.getBinds();
             this._options = _pick(queue.getAssertOptions(), QUEUE_OPTIONS);
             this._forceJsonDecode = queue.getForceJsonDecode();
-        } else if (typeof queue === 'object') {
-            this._name = queue.name;
-            this._binds = queue.binds;
-            this._options = _pick(queue.options || {}, QUEUE_OPTIONS);
-            this._forceJsonDecode = queue.force_json_decode || false;
+            this._queueWrapper = queue;
         } else {
             throw new Error('Invalid queue parameter');
         }
@@ -48,6 +49,14 @@ export class QueueManager {
 
     getQueue(): QueueInterface {
         return this._queue;
+    }
+
+    getOptions(): Options.AssertQueue {
+        return this._options;
+    }
+
+    getWrapper() {
+        return this._queueWrapper;
     }
 
     assert(): Observable<QueueManager> {
@@ -69,8 +78,20 @@ export class QueueManager {
         return this._isAsserted;
     }
 
+    setDispatcher(_dispatcher: (ch: ChannelInterface, message: RabbitMessage, { queue }: QueueDispatcherOptions) =>
+    Observable<() => Observable<MessageResult>>) {
+        if (typeof _dispatcher !== 'function') {
+            throw new Error(`dispatcher should be a function and not a ${typeof _dispatcher}`);
+        }
+
+        this._dispatcher = _dispatcher;
+    }
+
+    getDispatcher() {
+        return this._dispatcher;
+    }
+
     consume(
-        _dispatcher?: (ch: ChannelInterface, message: RabbitMessage) => Observable<() => Observable<MessageResult>>,
         options: ConsumeOptions = { decodeMessageContent: true, errorHandler: null, force_json_decode: false }
     ): Observable<Replies.Consume> {
         debug(`consuming queue ${this.getName()}...`);
@@ -78,35 +99,46 @@ export class QueueManager {
             options.decodeMessageContent = true;
         }
 
-        let dispatcher = _dispatcher;
-        let defaultDispatch: (message: RabbitMessage, ch) => Observable<MessageResult>;
+        const dispatcher = this.getDispatcher();
+
+        // Reconsume queue when channel is reconnected
+        this._ch.on('reconnected', () => {
+            this._consume({ dispatcher, options });
+        });
+        return this._consume({ dispatcher, options });
+    }
+
+    private _consume({
+        dispatcher,
+        options
+    }): Observable<Replies.Consume> {
+        if (this._consuming) {
+            return Observable.of(null);
+        }
+
+        let _dispatcher = dispatcher;
+
+        let defaultDispatch: (message: RabbitMessage, ch, { queue }: QueueDispatcherOptions) => Observable<MessageResult>;
+
+        // If the @Queue does not ship an onMessage method we create a fallback
+        // that will ack the message
         if (typeof this._queue['onMessage'] !== 'function') {
-            defaultDispatch = (message: RabbitMessage, ch): Observable<MessageResult>  => {
+            defaultDispatch = (message: RabbitMessage, ch, { queue }: QueueDispatcherOptions): Observable<MessageResult>  => {
                 // message not dispatched
                 debug('message not dispatched', message);
                 events.queueManager.emit('message_not_dispatched', message, ch);
                 return Observable.of({ ack: true });
             };
         } else {
+            // Otherwise the fallback of the dispatcher will be the queue onMessage function
             defaultDispatch = this._queue['onMessage'].bind(this._queue);
         }
 
-        if (typeof _dispatcher !== 'function') {
-            dispatcher = (ch: ChannelInterface, message: RabbitMessage) => Observable.of(() => defaultDispatch(message, ch));
+        if (typeof dispatcher !== 'function') {
+            _dispatcher = (ch: ChannelInterface, message: RabbitMessage) =>
+                Observable.of(() => defaultDispatch(message, ch, { queue: this._queueWrapper }));
         }
 
-        // Reconsume queue when channel is reconnected
-        this._ch.on('reconnected', () => {
-            this._consume({ dispatcher, options, defaultDispatch });
-        });
-        return this._consume({ dispatcher, options, defaultDispatch });
-    }
-
-    private _consume({
-        dispatcher,
-        options,
-        defaultDispatch
-    }): Observable<Replies.Consume> {
         const consumerChannel = this._ch.getChannel();
         return Observable.fromPromise(
             this._ch.getChannel().consume(this.getName(), message => {
@@ -121,10 +153,10 @@ export class QueueManager {
 
                     debug(`new message on queue ${this.getName()}`, _message.fields.deliveryTag);
 
-                    return dispatcher(consumerChannel, _message).switchMap(dispatch => {
+                    return _dispatcher(consumerChannel, _message, { queue: this._queueWrapper }).switchMap(dispatch => {
                         if (typeof dispatch !== 'function') {
-                            debug('dispatcher did not returned a function, using defaultDispatcher');
-                            return defaultDispatch(_message, this._ch);
+                            debug('dispatcher did not returned a function, call default dispatch');
+                            return defaultDispatch(_message, this._ch, { queue: this._queueWrapper });
                         } else {
                             return dispatch();
                         }
@@ -147,6 +179,8 @@ export class QueueManager {
                 }
             })
         )
+        .do(() => this._consuming = true)
+        .do(({ consumerTag }) => this._consumerTag = consumerTag)
         .do(res => MessageStore.addConsumer(consumerChannel, res.consumerTag))
         .do(res => {
             // If channel is closed, has en error or is reconnected the consumerTag is not valid
@@ -156,6 +190,17 @@ export class QueueManager {
                 MessageStore.removeConsumer(res.consumerTag);
             }));
         });
+    }
+
+    cancel() {
+        if (!this._consuming) {
+            return Observable.of(null);
+        }
+
+        return Observable
+            .fromPromise(this._ch.getChannel().cancel(this._consumerTag))
+            .do(() => MessageStore.removeConsumer(this._consumerTag))
+            .do(() => this._consuming = false);
     }
 
     handleMessageError(

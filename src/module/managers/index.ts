@@ -5,4 +5,5 @@ export * from './exchange-manager';
 export * from './exchange-wrapper';
 export * from './message-store';
 export * from './queue-manager';
+export * from './queue-store';
 export * from './queue-wrapper';

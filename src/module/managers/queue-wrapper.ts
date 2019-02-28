@@ -1,18 +1,26 @@
-import { QueueDecoratorInterface } from '../decorators';
+import { Type } from '@hapiness/core';
 import { Options } from 'amqplib';
+import { QueueDecoratorInterface } from '../decorators';
 import { QueueInterface, Bind } from '../interfaces';
 
 export class QueueWrapper {
     private _instance: QueueInterface;
     private _meta: QueueDecoratorInterface;
+    private _token: Type<QueueInterface>;
 
-    constructor(instance: QueueInterface, meta: QueueDecoratorInterface) {
+    constructor(instance: QueueInterface, metadata: { token: Type<QueueInterface>, data: QueueDecoratorInterface }) {
         this._instance = instance;
-        this._meta = meta;
+        const { data, token } = metadata;
+        this._meta = data;
+        this._token = token;
     }
 
     public getMeta(): QueueDecoratorInterface {
         return this._meta;
+    }
+
+    public getToken(): Type<QueueInterface> {
+        return this._token;
     }
 
     public getAssertOptions(): Options.AssertExchange {

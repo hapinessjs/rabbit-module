@@ -25,6 +25,7 @@ export class ChannelManager extends EventEmitter {
         this._connectionManager.on('error', () => {
             this._isConnected = false;
         });
+        this.setMaxListeners(0);
     }
 
     get prefetch(): number {

@@ -453,6 +453,10 @@ To set up your development environment:
 [Back to top](#table-of-contents)
 
 ## Change History
+* v1.7.0 (2019-02-27)
+    * Add method to cancel consuming queue
+    * Refactor consume queue to allow easier consume/cancel
+    * Add a QueueStore to fetch all the queues manager instances
 * v1.6.2 (2018-11-22)
     * Create DI with providers for queues and exchanges
 * v1.6.1 (2018-11-14)
