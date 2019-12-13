@@ -453,6 +453,8 @@ To set up your development environment:
 [Back to top](#table-of-contents)
 
 ## Change History
+* v1.7.1 (2019-12-13)
+    * Handle channel closed error when sending a message to add a custom code on the thrown error
 * v1.7.0 (2019-02-27)
     * Add method to cancel consuming queue
     * Refactor consume queue to allow easier consume/cancel
