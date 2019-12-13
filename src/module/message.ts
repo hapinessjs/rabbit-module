@@ -5,9 +5,9 @@ import { MessageOptions } from './interfaces';
 import { events } from './events';
 import { ConnectionManager } from './managers';
 
-function handleChannelClosedError(cb, ...options) {
+function handleChannelClosedError(cb, ...options): boolean {
     try {
-        cb(...options);
+        return cb(...options);
     } catch (err) {
         if (err.message && err.message.toLowerCase().includes('channel closed')) {
             // Add the code for this error, so it can be handled later
