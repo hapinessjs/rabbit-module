@@ -3,9 +3,27 @@ import * as _has from 'lodash.has';
 import * as _pick from 'lodash.pick';
 import { MessageOptions } from './interfaces';
 import { events } from './events';
+import { ConnectionManager } from './managers';
+
+function handleChannelClosedError(cb, ...options): boolean {
+    try {
+        return cb(...options);
+    } catch (err) {
+        if (err.message && err.message.toLowerCase().includes('channel closed')) {
+            // Add the code for this error, so it can be handled later
+            (<any>err).code = 'CHANNEL_CLOSED_ERROR';
+
+            // Emit the error on the connection object
+            (<ConnectionManager>(events.connection)).emit('error', err);
+        }
+
+        throw err;
+    }
+}
 
 export function sendMessage(ch: ChannelInterface, message: any, options: MessageOptions = {}): boolean {
     let { json } = Object.assign({ json: true }, options);
+
     const allowedOptions = [
         'expiration',
         'userId',
@@ -25,6 +43,7 @@ export function sendMessage(ch: ChannelInterface, message: any, options: Message
         'type',
         'appId'
     ];
+
     const publishOptions = _pick(options, allowedOptions);
 
     if (!ch) {
@@ -62,7 +81,13 @@ export function sendMessage(ch: ChannelInterface, message: any, options: Message
             queue: options.queue,
             content: message
         });
-        return ch.sendToQueue(options.queue, encodedMessage, publishOptions);
+
+        return handleChannelClosedError(
+            ch.sendToQueue,
+            options.queue,
+            encodedMessage,
+            publishOptions
+        );
     } else if (options.exchange) {
         events.message.emit('sent', {
             publishOptions,
@@ -70,7 +95,14 @@ export function sendMessage(ch: ChannelInterface, message: any, options: Message
             routingKey: options.routingKey,
             content: message
         });
-        return ch.publish(options.exchange, options.routingKey, encodedMessage, publishOptions);
+
+        return handleChannelClosedError(
+            ch.publish,
+            options.exchange,
+            options.routingKey,
+            encodedMessage,
+            publishOptions
+        );
     } else {
         throw new Error('Specify a queue or an exchange');
     }

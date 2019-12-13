@@ -7,7 +7,9 @@ import { Channel } from 'amqplib';
 
 @Injectable()
 export class MessageService {
+
     private _sendMessage;
+
     constructor(private _channelService: ChannelService) {
         this._sendMessage = sendMessage;
     }
