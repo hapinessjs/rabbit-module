@@ -5,13 +5,13 @@ import { MessageOptions } from './interfaces';
 import { events } from './events';
 import { ConnectionManager } from './managers';
 
-function handleChannelClosedError(cb, ...options): boolean {
+function handleErrorsWhenSendingMessage(cb, ...options): boolean {
     try {
         return cb(...options);
     } catch (err) {
         if (err.message && err.message.toLowerCase().includes('channel closed')) {
             // Add the code for this error, so it can be handled later
-            (<any>err).code = 'CHANNEL_CLOSED_ERROR';
+            (<any>err).code = 'UNHANDLED_RABBIT_ERROR';
 
             // Emit the error on the connection object
             (<ConnectionManager>(events.connection)).emit('error', err);
@@ -82,8 +82,8 @@ export function sendMessage(ch: ChannelInterface, message: any, options: Message
             content: message
         });
 
-        return handleChannelClosedError(
-            ch.sendToQueue,
+        return handleErrorsWhenSendingMessage(
+            ch.sendToQueue.bind(ch),
             options.queue,
             encodedMessage,
             publishOptions
@@ -96,8 +96,8 @@ export function sendMessage(ch: ChannelInterface, message: any, options: Message
             content: message
         });
 
-        return handleChannelClosedError(
-            ch.publish,
+        return handleErrorsWhenSendingMessage(
+            ch.publish.bind(ch),
             options.exchange,
             options.routingKey,
             encodedMessage,
