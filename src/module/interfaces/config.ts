@@ -17,4 +17,5 @@ export interface RabbitMQConfig {
     connection: RabbitMQConfigConnection;
     assert?: boolean;
     check?: boolean;
+    shutdown_timeout?: number;
 }
