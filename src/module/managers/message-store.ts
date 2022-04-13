@@ -23,7 +23,7 @@ export class MessageStoreClass extends EventEmitter {
         super();
         this.consumerTags = [];
         this.messages = [];
-        this.shutdownTimeoutMs = RabbitMQExt.getConfig().shutdown_timeout || 30000;
+        this.shutdownTimeoutMs = ((RabbitMQExt || <any>{ getConfig: () => {} }).getConfig() || <any>{}).shutdown_timeout || 30000;
         this.shutdown_running = false;
     }
 
