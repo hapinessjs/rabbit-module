@@ -3,8 +3,8 @@ import * as EventEmitter from 'events';
 import { Observable } from 'rxjs';
 import { Channel as ChannelInterface } from 'amqplib';
 import { RabbitMessage } from '../interfaces/rabbit-message';
-import { Config } from '@hapiness/config';
 import { ConnectionManager } from './connection-manager';
+import { RabbitMQExt } from '../rabbitmq.extension';
 
 const debug = require('debug')('hapiness:rabbitmq');
 
@@ -23,7 +23,7 @@ export class MessageStoreClass extends EventEmitter {
         super();
         this.consumerTags = [];
         this.messages = [];
-        this.shutdownTimeoutMs = Config.get('rabbitmq.shutdown_timeout', 30000);
+        this.shutdownTimeoutMs = RabbitMQExt.getConfig().shutdown_timeout || 30000;
         this.shutdown_running = false;
     }
 
