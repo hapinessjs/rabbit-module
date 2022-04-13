@@ -28,7 +28,6 @@ import { RabbitMQModule, RabbitConnectionService, RabbitMQExt } from '../../src/
 import { ConnectionManagerMock } from '../mocks/ConnectionManager';
 import { Config } from '@hapiness/config';
 
-
 @suite('- Integration MessageRouter')
 export class MessageRouterUnitTest {
     private spyFindClass: any;

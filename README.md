@@ -453,6 +453,8 @@ To set up your development environment:
 [Back to top](#table-of-contents)
 
 ## Change History
+* v1.7.3 (2019-12-16)
+    * v1.7.2 were not correctly published, nothing new in this version
 * v1.7.2 (2019-12-16)
     * Handle all errors when sending a message
     * Fix scope of "this" when sending message
